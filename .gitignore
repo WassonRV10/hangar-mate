@@ -1,0 +1,12 @@
+# Particle build output
+target/
+*.bin
+
+# Secrets — never commit access tokens or Pushover keys
+.env
+secrets*
+*.token
+
+# OS / editor
+.DS_Store
+.vscode/
