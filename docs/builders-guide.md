@@ -145,7 +145,7 @@ D2 / IO17 (pin 11) ──┬── relay IN
 Muon GND ─────────────── relay DC–
 ```
 
-The firmware reads D4 continuously: HIGH = ARMED, LOW = SAFE. On SAFE it drives D2 low, clears the commanded state, sends an alert and rejects "on" commands. Re-arming leaves the outlet off until a new command.
+The firmware reads D4 continuously: HIGH = ARMED, LOW = SAFE. The pin uses an internal pull-down, so a missing or broken sense wire reads SAFE, never ARMED. On SAFE it drives D2 low, clears the commanded state and sends an alert. While SAFE it refuses **every** relay command (on, off or toggle) and returns `-2`, so the phone reports "relays not active" instead of pretending the command worked. Re-arming leaves the outlet off until a new command.
 
 ### 6.5 Wire the AC side
 
@@ -207,32 +207,54 @@ You don't write code. You flash Brian's shared firmware, point it at your probes
 
 1. Create a dedicated Particle access token for the Shortcuts only, so you can revoke it without affecting anything else. Keep it private.
 2. Install the shared Shortcuts **[links]**. Each one asks for your device ID and token at install; they are never embedded in a shared link.
-3. You get: **Preheat On**, **Preheat Off**, **All Off** and **Hangar Status**. Each control Shortcut sends the command, waits a few seconds, reads `status` and shows the result.
-4. Optional: add a Siri phrase to Preheat On (e.g., "Preheat the airplane").
+3. You get: **Preheat** (one button that toggles the preheater) and **Hangar Status**. **All Off** is added when the production firmware publishes the `alloff` function. Preheat reads the controller's reply to the command itself, so what it shows is the state the controller actually set.
+4. Optional: add a Siri phrase to Preheat (e.g., "Preheat the airplane"). Because it toggles, always read the reply: ON or OFF.
 
 | Shortcut | Cloud call | What you see |
 | --- | --- | --- |
-| Preheat On | `tanis` = `on` | Command result, then engine / hangar temps |
-| Preheat Off | `tanis` = `off` | Command result |
-| All Off | `alloff` | Command result |
+| Preheat | `tanis` = `toggle` | "Tanis ON", "Tanis OFF", "Relays NOT active" or "No response from hangar" |
 | Hangar Status | read `status` | States, temps, engine-minus-hangar, signal |
+| All Off (later) | `alloff` | Command result |
 
-If the controller can't be reached, every Shortcut shows **"Controller unreachable — state unknown."** It never shows an old reading as current.
+**What the controller returns** (`return_value` in the reply to a function call):
+
+| Value | Meaning | Phone shows |
+| --- | --- | --- |
+| `1` | Output is now ON | Tanis ON |
+| `0` | Output is now OFF | Tanis OFF |
+| `-2` | Refused: ARM/SAFE is SAFE (or not yet read after boot); outputs stay off | Relays NOT active — arm switch is off |
+| `-1` | Bad argument | Treated as no valid response |
+| missing | Controller offline, cloud timeout or token problem | No response from hangar, plus Particle's error text |
+
+It never shows an old reading as current.
+
+#### Building the Preheat Shortcut yourself
+
+Until the shared Shortcuts are published, build it in the Shortcuts app:
+
+1. **Get Contents of URL.** URL `https://api.particle.io/v1/devices/<device name>/tanis`. Tap *Show More*: Method **POST**; Header `Authorization` = `Bearer <token>`; Request Body **Form**, field `arg` = `toggle`. (This one action does both GET and POST; the Method setting decides which.)
+2. **Get Dictionary Value**: *Value* for key `return_value` in *Contents of URL*. Function calls (POST) return `return_value`; variable reads (GET) return `result` instead, so don't read a variable here.
+3. **If** *Dictionary Value* **is** `1` → **Show Notification** "Tanis ON". End If.
+4. **If** is `0` → "Tanis OFF". End If.
+5. **If** is `-2` → **Show Alert** "Relays NOT active — arm switch is off. Nothing changed." End If.
+6. **If** (set to **All** conditions) *Dictionary Value* **is not** `1`, **is not** `0`, **is not** `-2` → **Show Alert** "No response from hangar: " followed by the *Contents of URL* variable. End If. This also catches an empty value, which is what an offline controller produces.
+
+Copy it and change `tanis` to `cabin` for a cabin-heat button. If your phone itself has no connection, Shortcuts stops at step 1 with its own error, which still tells you it failed.
 
 ## 8. Bench test checklist
 
 These are the tests Brian's prototype passed. Plug a lamp into the switched half. Pass every test before taking it to the hangar.
 
 - [ ] **1. Receptacle wiring.** Lid closed, cord plugged in, ARMED, outlet commanded on: the 3-light tester shows correct wiring on both halves. Commanded off: switched half dead, always-on half live.
-- [ ] **2. 3.3 V trigger.** ARMED. Run Preheat On / Off five times: the relay switches cleanly every time.
+- [ ] **2. 3.3 V trigger.** ARMED. Run Preheat ten times: the relay switches cleanly every time and the phone alternates Tanis ON / Tanis OFF, matching the lamp.
 - [ ] **3. Power-up stays off.** Remove and restore controller power five times. The lamp never lights.
 - [ ] **4. Reset and update stay off.** Press the Muon's reset button, then reflash the firmware over cellular. The lamp never lights.
 - [ ] **5. SAFE blocks in hardware.** With the lamp on, release the button to SAFE: lamp goes out immediately, the button LED goes dark, and a SAFE alert arrives.
-- [ ] **6. Commands rejected while SAFE.** Run Preheat On: phone shows rejected, lamp stays off.
-- [ ] **7. Re-arm stays off.** Latch to ARMED: lamp stays off until you run Preheat On again.
+- [ ] **6. Commands rejected while SAFE.** Run Preheat: phone shows "Relays NOT active," lamp stays off. Read `armState` in the Console: SAFE. (If it reads ARMED with the button released, D4 isn't seeing the switch; fix before going on.)
+- [ ] **7. Re-arm stays off.** Latch to ARMED: lamp stays off until you run Preheat again, which shows Tanis ON.
 - [ ] **8. Boot while SAFE.** With the button released, power-cycle the controller: lamp stays off and status reports SAFE. Then measure D4 with the relay energized: it should read at least 2.4 V.
 - [ ] **9. Probes at full length.** With the engine probe on its full-length extension cable, Hangar Status shows both temps. Warm the engine probe by hand; its reading rises within a minute. No missing readings over 30 minutes.
-- [ ] **10. Unreachable state.** Remove controller power. Every Shortcut shows "Controller unreachable — state unknown."
+- [ ] **10. Unreachable state.** Remove controller power and wait a minute. Preheat shows "No response from hangar" with Particle's error text; Hangar Status shows no current reading.
 
 ## 9. Hangar installation and soak test
 
@@ -243,7 +265,7 @@ These are the tests Brian's prototype passed. Plug a lamp into the switched half
 5. **Hangar probe:** place it about chest height, away from doors, sunlight and the airplane's heat.
 6. **Signal check in place:** with the door closed, confirm the device is online and run Hangar Status from home or the parking lot.
 7. **Soak test, 24–48 hours:** leave it running with the door closed. Pass = no disconnects that last more than a few minutes, every Shortcut answers, no unexpected restarts in the Console event log.
-8. **First real preheat:** run Preheat On with the cord plugged into the airplane. Note how fast engine-minus-hangar rises. After the first few cycles, set the "not warming" alert threshold from what you saw **[firmware setting to be published]**.
+8. **First real preheat:** run Preheat (confirm it says Tanis ON) with the cord plugged into the airplane. Note how fast engine-minus-hangar rises. After the first few cycles, set the "not warming" alert threshold from what you saw **[firmware setting to be published]**.
 
 ## 10. Daily use and preflight
 
@@ -251,10 +273,10 @@ These are the tests Brian's prototype passed. Plug a lamp into the switched half
 
 **Before a flight:**
 
-1. Run **Preheat On** several hours ahead. Tanis recommends about six hours or longer for full benefit; overnight is fine.
+1. Run **Preheat** several hours ahead and confirm the reply is **Tanis ON**. It toggles, so if it says OFF it was already on; run it again. Tanis recommends about six hours or longer for full benefit; overnight is fine.
 2. Run **Hangar Status** after 30–60 minutes and look for engine temperature pulling away from hangar temperature. The probe reads cowl air, not metal; watch the trend.
 3. At the airport: **unplug the extension cord from the airplane before fueling or engine start.** The probe comes out with it.
-4. Run **Preheat Off** or press the button to SAFE.
+4. Run **Preheat** (reply: Tanis OFF) or press the button to SAFE.
 
 **If the flight is canceled:** turn it off. If you forget, you'll get a long-run alert at 24 hours. The firmware never turns the Tanis off by itself.
 
@@ -265,8 +287,9 @@ Change one thing at a time and recheck.
 | Symptom | Likely cause | Check |
 | --- | --- | --- |
 | Muon won't power up | Wrong supply | USB-C needs a true PD supply and C-to-C cable; VIN needs 6–12 V |
-| "Controller unreachable" | No signal, no power, or device offline | Console shows online? Power at the supply? Re-run signal check at the box |
-| Preheat On returns "rejected — SAFE" | Button released, or a loose switched-rail wire | Latch the button (LED lit); check 5 V at relay DC+; check D4 reads about 3 V |
+| "No response from hangar" | No signal, no power, device offline, or token / device-name error | Read Particle's error text in the alert. Console shows online? Power at the supply? Re-run signal check at the box |
+| Preheat shows "Relays NOT active" | Button released, or a loose switched-rail or sense wire | Latch the button (LED lit); check 5 V at relay DC+; check D4 reads about 3 V; `armState` should read ARMED |
+| Shortcut says ON/OFF but the relay doesn't follow | Old firmware, or Shortcut not reading `return_value` | Flash current firmware; Shortcut step 2 must read `return_value` from the POST reply |
 | Relay doesn't click | Module DC+ on 3V3, jumper on active-low, or SAFE | DC+ must come from 5V through the switch; jumper active-high |
 | Relay clicks but switched half is dead | Load on NC, or loose NO / brass-screw wire | Wiring per 6.5; receptacle tester |
 | Outlet is on at power-up or when it should be off | Load wired through NC, or jumper on active-low | Fix immediately: COM → NO, active-high, 15 kΩ pull-down fitted |

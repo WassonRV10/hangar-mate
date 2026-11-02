@@ -2,7 +2,7 @@
 
 Remote preheat control and monitoring for an aircraft in a hangar with no Wi-Fi. A Particle Muon + M404 LTE-M controller switches the engine preheater (Tanis) from an iPhone and reports engine-compartment and hangar temperature, so you can confirm the engine is actually warming before you leave home.
 
-**Status:** prototype. Cellular link, both relays and the ARM/SAFE hardware cutoff are bench-verified. Temperature probes are waiting on the DS2484 I2C-to-1-Wire bridge. Firmware and iPhone Shortcuts are in progress. The builder's guide is **preliminary — do not build from it yet.**
+**Status:** prototype. Cellular link, both relays and the ARM/SAFE hardware cutoff are bench-verified. Temperature probes are waiting on the DS2484 I2C-to-1-Wire bridge. Relay-control firmware with a one-tap iPhone toggle is working on the bench; the status readout, alerts and shareable Shortcuts are in progress. The builder's guide is **preliminary — do not build from it yet.**
 
 ## Repository layout
 
@@ -12,7 +12,7 @@ Remote preheat control and monitoring for an aircraft in a hangar with no Wi-Fi.
 | `docs/PRD-Section-9A-Command-Notification-Interface-DRAFT.md` | Draft command and notification interface (iPhone Shortcuts + Particle Cloud + Pushover) — not yet merged into the PRD |
 | `docs/builders-guide.md` | Step-by-step guide for the minimum build (preliminary) |
 | `presentation/` | EAA chapter presentation (PDF) |
-| `firmware/` | Particle firmware (scaffold; code to come) |
+| `firmware/` | Particle firmware — `src/hangar_mate.ino` (relay control, toggle, ARM/SAFE reporting) |
 
 ## Minimum build
 
