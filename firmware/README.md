@@ -22,7 +22,7 @@ To flash from the Web IDE: create a new app, paste `src/hangar_mate.ino`, select
 | `-1` | Invalid argument |
 | `-2` | Refused: ARM/SAFE is SAFE, or not yet read after boot. Applies to every command (on, off, toggle); outputs stay off |
 
-This replaces the earlier draft definition (`1` changed, `0` already in that state). The PRD Section 9A draft still shows the old definition and needs the same update.
+This replaces the earlier draft definition (`1` changed, `0` already in that state). PRD v0.19 Section 9A matches. A `1` means the relay is on, not that current is flowing; the phone labels it "heat not yet confirmed" until CT confirmation exists (PRD IF-003).
 
 | Cloud variable | Values |
 | --- | --- |
@@ -31,12 +31,12 @@ This replaces the earlier draft definition (`1` changed, `0` already in that sta
 
 Events (private, `hm/` prefix): `hm/arm` on every ARM/SAFE change, `hm/cabin` when the cabin heater hits its run-time limit.
 
-## Still to come (planned in PRD Section 9A)
+## Still to come (planned in PRD Section 9A and FR-003a)
 
 - `alloff` function
 - `status` variable: JSON summary (output states, temperatures, ARM/SAFE, power, signal, firmware version)
 - DS18B20 temperatures through the DS2484 I2C bridge (waiting on bench test), and the `setprobe` function
-- 24-hour Tanis long-run notification and "not warming" alert
+- 24-hour Tanis long-run notification, and the FR-003a "not warming" check (default: under 5°F rise 30 min after ON)
 - Pushover forwarding via a Particle webhook on the `hm/` prefix
 
 ## Pin map (minimum build)

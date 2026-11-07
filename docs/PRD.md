@@ -1,10 +1,14 @@
 # Hangar Remote Monitoring & Preheat Control System
-## Project Requirements Document — Version 0.17
+## Project Requirements Document — Version 0.19
 
-**Project status:** Initial requirements  
+**Project status:** Prototype — bench verification in progress  
 **Primary application:** Remote aircraft hangar monitoring and preheat control  
 **Communications constraint:** No Wi-Fi available at hangar  
 **Proposed controller platform:** Particle Muon carrier board + M404 M-SoM
+
+**Revision notes (v0.19):** **Merges the Section 9A Command & Notification Interface** (drafted separately in v0.12) into this document, updated to match the firmware as built (owner decision, 2026-11-06). Changes from the v0.12 draft: (1) `tanis` and `cabin` accept `on | off | toggle`, and the separate Preheat On/Off Shortcuts are replaced by one **Preheat** toggle Shortcut (DEC-IF-05); (2) return codes now report the resulting state (`1` = now ON, `0` = now OFF; previously `1` = changed, `0` = already in that state), and `-2` covers SAFE or not-yet-read after boot for every command; (3) the cabin heater's `on,<min>` duration argument is **dropped** — the controller enforces a fixed maximum run time (DEC-IF-06); (4) **Phase 1 allowance on IF-003** — until CT confirmation exists, the Preheat Shortcut may show the relay as ON from the return code, labeled "heat not yet confirmed" (DEC-IF-07); (5) new **IF-010**: the phone shall not auto-retry commands, because `toggle` is not idempotent; (6) implemented variables (`tanisState`, `cabinState`, `armState`) and events (`hm/arm`, `hm/cabin`) recorded, replacing the draft's `hm/reset` and `hm/cabin/on`/`timeout`; (7) the draft's engine no-rise event is redefined by FR-003a; (8) the draft's open items 32–37 collided with existing Section 25 numbers and are renumbered 36–40 (the engine no-rise item is superseded by item 35). Also: **controller power** changes to an **8–12 V DIN-rail AC-DC supply feeding the Muon's VIN** (owner decision, 2026-11-06), superseding the v0.11 USB-C PD plan (ER-004, item 11b); stale "M-SoM not yet selected" text in Sections 3, 15, and ER-004 is updated (the M404 was selected in v0.6); and the Muon's LoRaWAN radio is recorded as not used (owner decision, 2026-11-06). Affects Section 3, FR-013, FR-014, Section 9A (new), CR-002, ER-004, Section 15, Section 18, and Section 25 (items 11b, 36–40).
+
+**Revision notes (v0.18):** Adds **FR-003a — Preheat effectiveness check** (owner decision, 2026-11-06). Phase 1 success criterion 8 and FR-013's "engine temperature not increasing as expected" notification had no requirement defining them; FR-003a does. At a configurable interval after Tanis is commanded ON (default 30 min, matching the Tanis guide's 30-minute verification check), the controller compares the engine-compartment temperature with its starting value and notifies the owner if the rise is below a configurable threshold (default 5°F, to be tuned from logged heat cycles). The threshold is an absolute rise in degrees, not a percentage, because a percentage of a temperature reading is not meaningful across winter temperatures. The notification includes the CT current reading so the owner can tell a sensor or cord-placement problem from a relay or Tanis problem. The check is notification-only — it never de-energizes, cycles, or retries Tanis (TSR-001, TSR-004). Affects FR-003a (new), FR-013, Section 17, Section 18, Section 19, and Section 25 (new item 35).
 
 **Revision notes (v0.17):** **Temperature-probe interface changed** (owner decision, 2026-10-27): the DS18B20 1-Wire bus moves from a GPIO pin to an **Adafruit DS2484 I²C-to-1-Wire bridge** on the QWIIC connector. Bench testing showed the probes answer presence pulses but every read returns 1s; Particle states RTL872x GPIO (the M404's MCU family) is too slow to bit-bang 1-Wire. Header pin 29 (A0/D19) is freed. Also corrects the pin name for header pin 29 (A0/D19, not D18/A0 as listed since v0.6). The CT bias/calibration work is paused pending a 10 µF capacitor. Parts to order: DS2484 breakout (Adafruit 5976), STEMMA QT/Qwiic cable, 10 µF capacitor, 10k resistor (ARM/SAFE divider). See Section 16, Appendix A.1, A.2, A.3, and Section 25 items 30 and 34.
 
@@ -16,7 +20,7 @@
 
 **Revision notes (v0.13):** Records the on-site cellular signal test of the actual Muon + M404 (2026-10-13) and defines the controller's physical installation. **Signal (Section 25 items 15–16):** the M404's Particle SIM selects its carrier automatically and was observed on **both AT&T and T-Mobile** — the earlier single-carrier "T-Mobile" assumption (based on a phone test) is superseded. Measured LTE Cat-M1 signal inside the hangar ranged from RSRP −95 to −113 dBm; the best signal quality (RSRQ −12 dB) was near the hangar door, and the worst (−113 dBm / −20 dB, followed by a dropped session) was midway between the back wall and the door. All messages were delivered without retransmission at every position. **Installation (new ER-005):** the controller enclosure will be mounted on the fixed wall beside the fiberglass man door, next to the light switch and bi-fold door opener button. ER-005 defines the enclosure type (non-metallic, listed), no-drill magnetic mounting with independent cord strain relief and a fall tether, antenna placement, inlet rating, and an in-place 24–48 hour soak test before final installation. Enclosure material resolved as a listed polycarbonate enclosure, replacing the owner's original wooden-box plan (item 32). See ER-005, Section 15, and Section 25 items 15, 16, 32, and 33.
 
-**Revision notes (v0.12):** Tightens the cabin heater's unattended/remote-controlled setting limit from **900 W to 700 W** (owner decision, 2026-10-13), superseding the v0.9 decision. At 700 W, combined Tanis + heater draw is **9.8 A** (vs. 11.5 A at 900 W), which leaves real margin under both the shared circuit's 16 A continuous capacity and the 12 A continuous rating (80% of 15 A) of the standard plug, cord, and power-strip hardware feeding the controlled outlets. Rationale: the RV-10 cabin is small, the heater's purpose is to take the chill off rather than fully heat the cabin, and the margin gain costs very little in useful heat. Affects FR-006 (decision text and placard content), Section 18 step 7, Section 20, and Section 25 item 21. The placard on the heater shall reflect 700 W. *Note: the separate draft "PRD v0.12 — Section 9A Command & Notification Interface (DRAFT)" is maintained as its own document and has not yet been merged into this file.*
+**Revision notes (v0.12):** Tightens the cabin heater's unattended/remote-controlled setting limit from **900 W to 700 W** (owner decision, 2026-10-13), superseding the v0.9 decision. At 700 W, combined Tanis + heater draw is **9.8 A** (vs. 11.5 A at 900 W), which leaves real margin under both the shared circuit's 16 A continuous capacity and the 12 A continuous rating (80% of 15 A) of the standard plug, cord, and power-strip hardware feeding the controlled outlets. Rationale: the RV-10 cabin is small, the heater's purpose is to take the chill off rather than fully heat the cabin, and the margin gain costs very little in useful heat. Affects FR-006 (decision text and placard content), Section 18 step 7, Section 20, and Section 25 item 21. The placard on the heater shall reflect 700 W. *Note: the separate draft "PRD v0.12 — Section 9A Command & Notification Interface (DRAFT)" is maintained as its own document and has not yet been merged into this file.* *(Merged in v0.19.)*
 
 **Revision notes (v0.11):** Resolves two more open items from on-hand hardware. **Controller power (Section 25 item 11b)** — the owner already has a USB-C PD supply and will plug it into the power-strip receptacle per ER-003's outlet allocation; this satisfies ER-004's requirement for a genuine USB-C PD-capable source (not a repurposed USB-A charger). **Master-reset switch (Section 25 item 31)** — the owner has a Daiertek 12V, 19mm momentary horn-style pushbutton on hand. This is a standard 2-terminal (SPST, Normally-Open-only) switch, not a DPST — switches of this generic "horn button" style are built with a single pole. This settles the pole-count question in Appendix A.1's hybrid master-reset design: with only one pole available, the GPIO logging/detection tap cannot come from a second pole or a diode off the switch itself. Instead, the detection tap is redesigned as a **voltage-divider sense input** reading the relay-coil-power rail directly, downstream of the switch — the same node the button interrupts — so the Muon can detect "rail present" vs. "rail cut" without needing a second pole. See Appendix A.1 and A.2 for the revised design and pin note, and Appendix A.3 for the one remaining item (confirming divider resistor values on the bench).
 
@@ -97,13 +101,13 @@ The proposed system consists of:
 - Hangar lighting-state sensor
 - Local status indicators
 - Backup power for the controller
-- Remote notification and control software
+- Remote notification and control software (Section 9A)
 
 **Controller platform change (v0.5):** The system was originally specified around the Particle Boron LTE (BRN404X). The owner encountered order-fulfillment/delivery problems with the Boron and is switching to the **Particle Muon carrier board** paired with a Particle M-SoM (M.2 System-on-Module).
 
 The Muon is Particle's newer multi-radio carrier board, built around the Raspberry Pi form factor, that accepts an M-SoM module providing cellular, Wi-Fi, BLE, and GNSS, with the Muon carrier itself additionally providing LoRaWAN and Ethernet. Functionally it fills the same role the Boron did in this design — a cellular-connected controller with GPIO, analog inputs, I²C, SPI, and battery support — but the physical hardware, power architecture, and connector layout differ meaningfully from the Boron and are called out where relevant throughout this document (see ER-001, ER-004, Section 15).
 
-**Open item carried into Section 25:** the specific M-SoM model to be paired with the Muon carrier (e.g., an LTE Cat M1 North American module comparable to the BRN404X) has not yet been confirmed. Electrical specifics in this document (GPIO voltage, current draw) are based on general Muon/M-SoM documentation and should be re-verified against the datasheet for the specific M-SoM module once selected, the same way the original BRN404X datasheet was used to correct assumptions made from the general Boron datasheet.
+**M-SoM selected (v0.6; text updated v0.19):** the Muon is paired with a Particle **M404** (North American LTE Cat M1 with 2G fallback, built-in GNSS). Remaining datasheet checks against the M404 (GPIO input-HIGH threshold, operating temperature range) are tracked in ER-004 and Appendix A.3.
 
 ---
 
@@ -146,6 +150,54 @@ The system shall provide remote indication of:
 Where practical, confirmation shall be based on an electrical measurement or other direct indication of the heating circuit rather than relying solely on the command sent to the controller.
 
 **Implementation note (v0.10):** this will be implemented with a current-transformer (CT) sensor (see Appendix A.1), which reads actual current magnitude rather than a simple present/absent signal — a capability upgrade over this requirement's original intent, since it can also flag an abnormally low reading (partial element failure) rather than only a fully-off condition.
+
+---
+
+## FR-003a — Preheat effectiveness check (new in v0.18)
+
+**Purpose:** FR-003 confirms that current is flowing to the Tanis branch. This requirement confirms that heat is actually reaching the engine compartment. It defines Phase 1 success criterion 8 (Section 19) and the "engine temperature not increasing as expected" notification in FR-013. It automates the check the Tanis guide asks for: verify warmth about 30 minutes after energizing (Section 18).
+
+When a remote command to energize the Tanis circuit is accepted (system ARMED per FR-015a), the system shall record as baseline values:
+
+- The engine-compartment temperature (FR-004)
+- The hangar temperature (FR-007)
+
+At a configurable interval after the command (default **30 minutes**), the system shall compare the current engine-compartment temperature with its baseline. If the rise is less than a configurable threshold (default **5°F**), the system shall send a **Warning**-level notification (Section 17).
+
+The notification shall include:
+
+- Baseline and current engine-compartment temperatures, and the measured rise
+- Current hangar temperature
+- Current Tanis CT reading (FR-003)
+
+**Threshold units:** the threshold shall be an absolute temperature rise in degrees, not a percentage. A percentage of a temperature reading is not physically meaningful: on a 10°F morning a 50% rise is only 5°F, and the calculation fails entirely near 0°F.
+
+**Check lifecycle:**
+
+- The check shall run once per accepted ON command.
+- The check shall be cancelled, with no notification, if the Tanis circuit is turned off or the system goes to SAFE before the interval elapses.
+- If the engine-compartment probe does not respond at check time, the system shall report "engine sensor not responding" instead of a temperature result.
+- If the check passes, the system may send an informational "heating confirmed" notification (supports Section 18 step 9).
+
+**Diagnostic guide** (included in the notification or documented for the owner; informational only):
+
+| CT current | Temperature rise | Likely meaning |
+|---|---|---|
+| About 4 A | Yes | Normal — heating confirmed |
+| About 4 A | No | Sensor not inside the cowl, or the Tanis cord not plugged into the aircraft (current flowing to something other than the engine is unlikely, but the cord connection should be checked) |
+| About 0 A | No | Relay or outlet failure, or Tanis cord not plugged into the controlled outlet |
+| Low but nonzero | Weak or none | Possible partial heating-element failure |
+
+**Notification only:** the system shall not de-energize, cycle, or retry the Tanis circuit based on this check (TSR-001, TSR-004, Section 26). The owner decides what to do.
+
+**Defaults are starting points:** the engine sensor reads cowl air near the oil door, not engine metal, and the Tanis guide's ~60°F figure is a rise at thermal equilibrium after several hours, not at 30 minutes (FR-004). The threshold and interval shall be tuned from logged temperature history (FR-017) over the first several real heat cycles (Section 25, item 35).
+
+**Verification:**
+
+1. Probe placed outside the cowl, Tanis ON → alert at the interval, CT about 4 A.
+2. Relay ON with the Tanis cord unplugged from the controlled outlet → alert at the interval, CT about 0 A.
+3. Normal heat cycle with the probe in the cowl → no alert (or "heating confirmed").
+4. Tanis turned OFF, or switch moved to SAFE, before the interval → no check result sent.
 
 ---
 
@@ -339,7 +391,7 @@ Initial notification candidates:
 
 - Tanis preheat successfully energized
 - Tanis preheat failed to energize
-- Engine temperature not increasing as expected
+- Engine temperature not increasing as expected (defined by FR-003a)
 - Cabin heater enabled
 - Cabin temperature not increasing as expected
 - Flood detected
@@ -348,6 +400,8 @@ Initial notification candidates:
 - Controller lost cellular connectivity
 - Controller power failure
 - Controller returned to service
+- Tanis current present while commanded OFF (welded relay contacts; Section 9A, IF-005)
+- ARM/SAFE switch changed (FR-015a)
 
 Notifications shall include the event type and time.
 
@@ -370,6 +424,8 @@ The owner shall be able to remotely view:
 - Hangar activity status
 - Hangar lighting status
 - Cellular/controller status
+
+**Phase 1 (v0.19):** satisfied by the Hangar Status Shortcut's text summary (Section 9A.5). A graphical dashboard remains under Future Enhancements (Section 24).
 
 ---
 
@@ -401,6 +457,178 @@ Placing the switch in SAFE shall:
 - Be logged as an event (time, and that it was a local override rather than a remote command), consistent with FR-016/SR-002
 
 This gives the owner (or anyone at the hangar) a simple, no-app-required way to guarantee everything is off — for example, before fueling, before engine start, or if something seems wrong — without needing to know or trust the current state of the remote system. Because the switch latches, SAFE also works as a lockout: nothing can be turned on remotely until someone at the hangar re-arms it.
+
+---
+
+# 9A. Command & Notification Interface (merged v0.19)
+
+This section defines the remote command and notification interface that FR-013, FR-014, FR-015, CR-002, SR-001, and SR-002 require. It was drafted separately in v0.12 and merged here in v0.19, updated to match the firmware as built (`firmware/src/hangar_mate.ino`).
+
+The architecture is:
+
+- **Control:** iOS Shortcuts on the owner's iPhone call the Particle Cloud API directly.
+- **Alerts:** the device publishes events, and a Particle webhook forwards them to Pushover.
+
+There is no SMS channel and no custom mobile app. All safety logic stays on the controller. The phone side is a thin, replaceable front end.
+
+Each item below is marked **Implemented** (in the current firmware) or **Planned**.
+
+## 9A.1 Decisions
+
+| ID | Decision | Alternatives considered | Rationale | Reversibility |
+|---|---|---|---|---|
+| DEC-IF-01 | Control via iOS Shortcuts calling the Particle Cloud API | SMS; Particle Console/app; Blynk-type dashboard service; custom native app | Shortcuts give home-screen buttons and Siri with no app development and no added service. Reports indicate the Particle SIM does not support SMS. A native app is unjustified for a single user. | High. The front end can be replaced without firmware changes. |
+| DEC-IF-02 | Alerts via a Particle webhook to Pushover | ntfy; SMS via a paid gateway; email | Reliable iOS push for a one-time app purchase. Its priority levels map onto Section 17's alert tiers, and its emergency priority repeats until acknowledged, which matches FR-008. | High |
+| DEC-IF-03 | The controller is the sole authority for safety behavior | Logic split between phone and cloud | The cabin-heater timeout, the ARM/SAFE lockout, and fault detection must work even when the phone, the cellular link, or the cloud is unavailable (Section 2.2). | Low. This is architectural. |
+| DEC-IF-04 | Single user with a single API token; multi-user deferred | Separate tokens or accounts per user | Single pilot. If a second user is added later, the Shortcut can be shared without changing the architecture (see IF-SEC-03). | High |
+| DEC-IF-05 | One **Preheat** toggle Shortcut instead of separate On and Off Shortcuts; command return codes report the resulting state | Separate On/Off Shortcuts reading `status` after each command | One button on the phone, and the reply tells the owner what the controller actually set. | High |
+| DEC-IF-06 | The cabin heater has a fixed, firmware-enforced maximum run time. Commands take no duration argument. (Owner decision, 2026-11-06.) | `cabin on,<min>` with a default and a clamped maximum | Single user; a fixed maximum is simpler and cannot be set wrong from the phone. | High |
+| DEC-IF-07 | Phase 1 allowance on IF-003: until Tanis CT confirmation is implemented, the Preheat Shortcut may show the relay as ON from the command's return code, labeled as not confirmed. (Owner decision, 2026-11-06.) | Show nothing until CT confirmation exists | The return code is the controller's real relay state, which is useful now. Labeling it keeps "relay on" distinct from "heat confirmed." | High. Ends when IF-004 is implemented. |
+
+## 9A.2 Architecture
+
+```
+iPhone Shortcuts ──HTTPS──▶ Particle Cloud API ──cellular──▶ Muon/M404 (Hangar_Mate)
+                                                                  │
+iPhone Pushover ◀──HTTPS── Pushover API ◀── Particle Webhook ◀── events (hm/...)
+```
+
+- **Commands** are Particle cloud functions on the device.
+- **State** is reported through Particle cloud variables (9A.4).
+- **Alerts** are private Particle events. One webhook matching the `hm/` prefix forwards them to Pushover. The Pushover credentials live in the webhook configuration, not in firmware.
+
+## 9A.3 Command Set (Particle cloud functions)
+
+| Function | Argument | Action | Status | Requirement |
+|---|---|---|---|---|
+| `tanis` | `on` \| `off` \| `toggle` | Energize, de-energize, or flip the Tanis relay. No timer and no auto-off. | Implemented | FR-002, FR-015, TSR-001/002 |
+| `cabin` | `on` \| `off` \| `toggle` | Energize, de-energize, or flip the cabin-heater relay. The controller turns it off after the fixed maximum run time (IF-006). Each accepted ON command starts a new run-time window. | Implemented | FR-006, FR-015 |
+| `alloff` | (none) | De-energize all controlled outlets. This is the remote equivalent of the FR-015a end state, but it does not replace the physical ARM/SAFE switch. | Planned | FR-015 |
+| `setprobe` | probe ID and role | Assign a temperature probe's ROM ID to ENGINE, CABIN, or HANGAR. | Planned | FR-004, FR-005, FR-007 |
+| `ack` | `<alarm>` | Acknowledge a latched alarm. | Reserved, Phase 3 | FR-008 |
+
+Neither `tanis` nor `cabin` accepts a duration (IF-007, DEC-IF-06).
+
+### Function return codes (Implemented)
+
+The Particle API returns an integer from each function call. Codes report the **resulting** relay state.
+
+| Code | Meaning |
+|---|---|
+| `1` | The output is now ON (relay energized by the controller) |
+| `0` | The output is now OFF |
+| `-1` | Invalid argument |
+| `-2` | Refused: the ARM/SAFE switch is SAFE, or has not yet been read since boot. Applies to every command (`on`, `off`, `toggle`). All outputs are off. |
+
+A return code of `1` means the controller drove the relay on. It does not prove that current is flowing or that the engine is warming. See IF-003 and DEC-IF-07.
+
+### Toggle is not idempotent
+
+Sending `toggle` twice flips the output twice. If the phone loses the reply to a toggle and resends it, the second call can undo the first without the owner knowing. The phone interface therefore shall not retry automatically (IF-010).
+
+## 9A.4 State Reporting
+
+### Implemented cloud variables
+
+| Variable | Values | Meaning |
+|---|---|---|
+| `tanisState` | `on` / `off` | Tanis relay state as set by the controller |
+| `cabinState` | `on` / `off` | Cabin-heater relay state as set by the controller |
+| `armState` | `ARMED` / `SAFE` / `unknown` | ARM/SAFE switch state from the D4 sense input; `unknown` until first read after boot |
+
+These report relay command state, not electrical confirmation.
+
+### Planned `status` variable
+
+A compact JSON string that the device updates on every state change and on each sensor cycle. It will replace the individual variables above for the Hangar Status Shortcut. Illustrative content:
+
+```json
+{"t":"2026-11-02T06:14Z",
+ "tanis":{"st":"CONFIRMED_ON","a":4.0,"since":"05:02Z"},
+ "cabin":{"st":"OFF","rem":0},
+ "temp":{"eng":71,"cab":38,"hgr":34},
+ "arm":"ARMED","pwr":"AC","batt":98,"sig":"good","fw":"0.1.0"}
+```
+
+### Output states (FR-003) — Planned, with the CT
+
+| State | Meaning |
+|---|---|
+| `OFF` | Commanded off, and current is below the off threshold |
+| `COMMANDED_ON` | Relay commanded on, and the confirmation window has not yet elapsed |
+| `CONFIRMED_ON` | Commanded on, and CT current is within the expected band |
+| `FAULT_NO_CURRENT` | Commanded on, but current is still below threshold after the confirmation window |
+| `FAULT_LOW_CURRENT` | Commanded on, but current is nonzero and below the expected band (possible partial element failure) |
+| `FAULT_STUCK_ON` | Commanded off, but current is present (welded relay contacts). **Critical.** |
+| `UNAVAILABLE` | Determined phone-side when the API call fails or times out. The device cannot report this state itself. |
+
+The Tanis states use the CT on header pin 24. The cabin-heater current states apply only if the optional second CT (pin 26) is installed. Otherwise the cabin heater reports command state plus the temperature trend.
+
+## 9A.5 Phone Interface (iOS Shortcuts)
+
+| Shortcut | Behavior | Status |
+|---|---|---|
+| **Preheat** | Calls `tanis toggle` and reads `return_value` from the reply. Displays: `1` → "Preheat ON — relay on, heat not yet confirmed" (Phase 1, DEC-IF-07); `0` → "Preheat OFF"; `-2` → "Relays not active — ARM/SAFE switch is SAFE"; anything else, an error, or a timeout → "No response from hangar — state unknown". | Implemented |
+| **Hangar Status** | Reads state and displays a one-screen summary: output states, ARM/SAFE, temperatures, engine-minus-hangar delta, heater time remaining, power source, signal. Reads the individual variables until `status` exists. | Partial (temperatures wait on the DS2484 bench test) |
+| **Cabin Heat** | Calls `cabin toggle`; same display rules as Preheat. | Planned (Phase 2) |
+| **All Off** | Calls `alloff` and displays the result. | Planned (with `alloff`) |
+
+Each control Shortcut can be invoked by a Siri phrase (for example, "Preheat the airplane").
+
+Once CT confirmation (IF-004) is implemented, the Preheat Shortcut shall read the Tanis state after the confirmation window and show ON only for `CONFIRMED_ON`.
+
+On API failure or timeout, every Shortcut displays a "state unknown" message. It must never show a last-known state as if it were current, and it must not resend the command (IF-010).
+
+## 9A.6 Requirements
+
+| ID | Requirement | Traces to | Status |
+|---|---|---|---|
+| IF-001 | The controller shall expose remote control solely through the cloud functions defined in 9A.3. | FR-015 | Implemented (`tanis`, `cabin`) |
+| IF-002 | The controller shall maintain a `status` variable containing all fields in 9A.4. It shall update it within 2 s of any output state change, and at least every sensor-logging interval otherwise. Until then, `tanisState`, `cabinState`, and `armState` shall be updated on every change. | FR-003, FR-014 | Interim variables implemented; `status` planned |
+| IF-003 | No phone interface element shall display an output as ON based on a command result alone. ON shall be displayed only from a state read showing `CONFIRMED_ON`, or for the cabin heater without a CT, `COMMANDED_ON` labeled as unconfirmed. **Phase 1 allowance (DEC-IF-07):** until IF-004 is implemented, the Preheat Shortcut may display ON from a return code of `1`, provided it is labeled "heat not yet confirmed." The allowance ends when IF-004 is implemented. | CR-002, FR-015 | Allowance in use |
+| IF-004 | The controller shall evaluate Tanis CT current within a confirmation window after each Tanis command (default 10 s, configurable). It shall set the resulting state and publish the corresponding event. | FR-003, CR-002 | Planned (CT bias and calibration, item 30) |
+| IF-005 | The controller shall detect `FAULT_STUCK_ON` continuously, not only after commands, and shall publish a Critical event. | TSR-004, ER-001 | Planned |
+| IF-006 | The cabin-heater maximum on-duration shall be enforced on the controller as a fixed value set in firmware. No command argument shall set or extend it beyond starting a new window with a new ON command. | FR-006 | Implemented (value is a placeholder, item 38) |
+| IF-007 | The `tanis` command shall not accept a duration, and the controller shall never de-energize Tanis on a timer. | TSR-001, TSR-002, §26 | Implemented |
+| IF-008 | Every command (`on`, `off`, `toggle`) shall return `-2` while the ARM/SAFE switch is SAFE or has not been read since boot, with all outputs held off. After the switch returns to ARMED, no output shall re-energize without a new command. | FR-015a | Implemented |
+| IF-009 | Every command shall be logged with time, function, argument, return code, and resulting state. | SR-002 | Partial (device serial log only; durable history is item 37) |
+| IF-010 | The phone interface shall not automatically retry a control command. On an error or timeout it shall report "state unknown," and the owner shall read state before sending another command. | CR-002, FR-015 | Implemented in the Preheat Shortcut |
+| IF-011 | Each control function shall return the resulting output state or an error code as defined in 9A.3. | CR-002 | Implemented |
+| IF-NOT-01 | The controller shall publish the events in 9A.7 as private Particle events with the `hm/` prefix. | FR-013 | Partial |
+| IF-NOT-02 | Each event shall carry its alert tier (Section 17), and the webhook shall map the tier to a Pushover priority as defined in 9A.7. | FR-013, §17 | Planned |
+| IF-NOT-03 | Every notification shall include the event type, the time, and the relevant readings. | FR-013 | Planned |
+| IF-SEC-01 | API access shall use a dedicated Particle access token created only for the Shortcuts. It shall be revocable without affecting other access. | SR-001 | — |
+| IF-SEC-02 | All events shall be published private, never public. | SR-001 | Implemented |
+| IF-SEC-03 | If a Shortcut is ever shared, the token shall be supplied through the Shortcut's import question at install time, not embedded in the shared link. | SR-001 | — |
+
+## 9A.7 Event Catalog
+
+| Event | Tier | Pushover priority | Trigger | Phase | Status |
+|---|---|---|---|---|---|
+| `hm/arm` | Warning (SAFE) / Info (ARMED) | 1 / 0 | ARM/SAFE switch changed (FR-015a) | 1 | Implemented |
+| `hm/cabin` | Info | 0 | Cabin heater reached its maximum run time and was turned off | 2 | Implemented |
+| `hm/tanis/confirmed` | Info | 0 | Tanis reached `CONFIRMED_ON` | 1 | Planned |
+| `hm/tanis/off` | Info | -1 (quiet) | Tanis confirmed off | 1 | Planned |
+| `hm/tanis/fault` | Critical | 1 | `FAULT_NO_CURRENT` or `FAULT_LOW_CURRENT` | 1 | Planned |
+| `hm/tanis/stuck` | Critical | 2 (repeats until acknowledged) | `FAULT_STUCK_ON` | 1 | Planned |
+| `hm/tanis/longrun` | Warning | 1 | Tanis energized longer than the configured threshold (default 24 h, TSR-002). Notification only. | 1 | Planned |
+| `hm/eng/norise` | Warning | 1 | FR-003a effectiveness check failed: engine-compartment rise from baseline below threshold at the check interval (defaults 5°F at 30 min) | 1 | Planned |
+| `hm/eng/ok` | Info | 0 | FR-003a effectiveness check passed (optional) | 1 | Planned |
+| `hm/power/lost` | Critical | 1 | Controller on battery (ER-004) | 1 | Planned |
+| `hm/power/restored` | Info | 0 | AC power restored | 1 | Planned |
+| `hm/boot` | Info | -1 | Controller started or returned to service | 1 | Planned |
+| `hm/cabin/norise` | Warning | 1 | Cabin temperature not rising | 2 | Planned |
+| `hm/flood`, `hm/river`, `hm/activity`, `hm/lights` | per §17 | per tier | Reserved | 3–5 | Reserved |
+
+Communications loss (CR-001) **cannot be published by the device**. See Section 25 item 36.
+
+## 9A.8 Assumptions
+
+- **A-1.** A confirmation window of about 10 s is enough for relay actuation plus CT RMS sampling. To be validated during CT calibration (Appendix A.3).
+- **A-2.** The phone can call functions and read variables fast enough for interactive use over LTE-M. The Preheat Shortcut works interactively on the bench; confirm at the hangar during the soak test (item 33).
+- **A-3.** The cabin-heater maximum run time is 120 min. This is a placeholder until the owner sets it (item 38).
+
+Interface open items are carried in Section 25 as items 36–40.
 
 ---
 
@@ -493,7 +721,9 @@ The controller should have battery backup sufficient to:
 
 **Controller change note (v0.5):** The Boron's onboard USB power and Li-Po charging circuit are being replaced by the Muon carrier board's equivalent power architecture. The Muon supports Li-Ion/Li-Po battery operation via a battery pack, and — unlike the Boron — Particle's guidance for the Muon/M-SoM power module notes it requires an actual USB-C port or USB-C power adapter to power the board and charge the battery; a USB-A-to-USB-C cable will not power the Muon or charge the battery, because the Muon uses USB-C Power Delivery to negotiate the supply voltage. This is a concrete installation detail: whatever powers the Muon in the hangar (e.g., a wall-wart plugged into the power-strip receptacle from ER-003) must be a genuine USB-C PD-capable supply/cable, not a repurposed USB-A charger with an adapter tip.
 
-The Boron's rated operating range (-20°C to +60°C) was previously used to justify accepting a controller/charging fault below -20°C as a non-issue, since flying isn't desirable in that range regardless (see prior revision). The equivalent Muon/M-SoM operating range has not yet been confirmed and should be checked once the specific M-SoM module is selected (see Section 25); the same reasoning is expected to apply, but should not be assumed without checking the actual datasheet figures, the same way the BRN404X datasheet correction applied to the Boron.
+**Primary supply (decision, v0.19, 2026-11-06):** the Muon is powered through **VIN** (6–12 V) from an adjustable **8–12 V DIN-rail AC-DC supply** mounted in the controller enclosure and fed from its always-on (unswitched) AC. This supersedes the v0.11 USB-C PD plan (Section 25 item 11b), so the USB-C PD caution above applies only if USB-C is used for bench power. The supply's output shall be set and measured within the VIN range before it is connected to the Muon. Battery backup remains as described above.
+
+The Boron's rated operating range (-20°C to +60°C) was previously used to justify accepting a controller/charging fault below -20°C as a non-issue, since flying isn't desirable in that range regardless (see prior revision). The equivalent Muon/M-SoM operating range has not yet been confirmed and should be checked against the M404 datasheet (see Section 25 item 11a); the same reasoning is expected to apply, but should not be assumed without checking the actual datasheet figures, the same way the BRN404X datasheet correction applied to the Boron.
 
 ---
 
@@ -601,6 +831,8 @@ Example:
 
 The system shall not report "preheater ON" merely because the user pressed an ON button.
 
+Implemented by Section 9A: IF-011 (return codes), IF-003 with its Phase 1 allowance, IF-004 (CT confirmation), and IF-010 (no automatic retry).
+
 ---
 
 # 14. Security
@@ -644,7 +876,7 @@ Responsibilities:
 - Notifications
 - Local status
 
-**v0.5 change:** This replaces the previously specified Particle Boron LTE (BRN404X), due to Boron order-fulfillment/delivery problems. The Muon is a carrier board (Raspberry Pi form factor) that accepts a separate M-SoM module providing the actual cellular/Wi-Fi/BLE/GNSS radio; the specific M-SoM model has not yet been finalized (see Section 25). Functionally, the controller's role in this architecture — cellular link, GPIO-driven relay control, sensor acquisition, and cloud connectivity for the remote dashboard — is unchanged. The Muon carrier additionally exposes LoRaWAN and Ethernet, and a 40-pin expansion (HAT-style) connector plus a QWIIC/I²C connector, which are not required by this design but may simplify sensor wiring compared to the Boron's more limited GPIO breakout.
+**v0.5 change:** This replaces the previously specified Particle Boron LTE (BRN404X), due to Boron order-fulfillment/delivery problems. The Muon is a carrier board (Raspberry Pi form factor) that accepts a separate M-SoM module providing the actual cellular/Wi-Fi/BLE/GNSS radio; the M404 M-SoM was selected in v0.6 (Section 25 item 11a). Functionally, the controller's role in this architecture — cellular link, GPIO-driven relay control, sensor acquisition, and cloud connectivity for the remote dashboard — is unchanged. The Muon carrier additionally exposes LoRaWAN and Ethernet, and a 40-pin expansion (HAT-style) connector plus a QWIIC/I²C connector, which are not required by this design (the LoRaWAN radio is not used — owner decision, 2026-11-06) but the header and QWIIC connector may simplify sensor wiring compared to the Boron's more limited GPIO breakout.
 
 The previously noted carrier support (AT&T, T-Mobile, and Verizon in the United States, with a note concerning Verizon enterprise plans) was specific to the BRN404X module and needs to be re-confirmed once the actual M-SoM model is selected, since carrier compatibility is a property of the cellular module, not the Muon carrier board itself.
 
@@ -735,7 +967,7 @@ Examples:
 
 Examples:
 
-- Engine temperature has not increased sufficiently
+- Engine temperature has not increased sufficiently (FR-003a)
 - Cabin heater has been running longer than expected
 - Cellular connection has been lost
 - Hangar lights remain on after inactivity
@@ -756,18 +988,18 @@ Examples:
 ## Preflight heating
 
 1. User decides to fly.
-2. User opens the remote hangar-control interface.
-3. User views current hangar and engine temperatures.
-4. User commands Tanis preheat ON.
-5. System confirms command receipt.
-6. System confirms electrical/heating operation.
+2. User runs the Hangar Status Shortcut and views current hangar and engine temperatures (Section 9A.5).
+3. User runs the Preheat Shortcut.
+4. The controller's reply shows the resulting relay state, or that the ARM/SAFE switch is SAFE.
+5. If the reply is lost, the Shortcut reports "state unknown"; the user checks state before sending another command (IF-010).
+6. System confirms electrical operation from the CT (IF-004; until implemented, the reply is labeled "heat not yet confirmed").
 7. User optionally enables cabin heater (dial left at 700 W per FR-006's operating constraint).
 8. System monitors engine and cabin temperature.
-9. User receives notification when heating is progressing normally.
+9. User receives notification when heating is progressing normally, or a warning if the FR-003a effectiveness check fails.
 10. User travels to airport.
 11. Before aircraft operation, the Tanis system is disconnected in accordance with aircraft/Tanis procedures (extension cord unplugged from the oil-door shore-power plug).
 
-The Tanis guide recommends approximately six hours or longer for maximum benefit and says to verify operation after approximately 30 minutes by checking for warmth at the cylinder assemblies and crankcase.
+The Tanis guide recommends approximately six hours or longer for maximum benefit and says to verify operation after approximately 30 minutes by checking for warmth at the cylinder assemblies and crankcase. FR-003a automates a remote version of this 30-minute check; it supplements, but does not replace, the owner's physical check at the aircraft.
 
 ---
 
@@ -785,6 +1017,7 @@ The first implementation should include only the functionality necessary to prov
 - Hangar temperature sensor
 - Remote temperature display
 - Basic notifications
+- Preheat effectiveness check (FR-003a)
 - Controller power monitoring
 - Local manual override
 
@@ -799,7 +1032,7 @@ The owner can:
 5. Confirm that it actually energized.
 6. Observe engine temperature increasing.
 7. Observe hangar temperature.
-8. Receive an alert if heating does not behave as expected.
+8. Receive an alert if heating does not behave as expected (defined by FR-003a).
 
 ---
 
@@ -905,7 +1138,7 @@ Items marked **✅ Resolved** are now settled. Remaining items should be obtaine
 
 11a. What specific M-SoM module will be paired with the Muon carrier board (e.g., an LTE Cat M1 North American module)? ✅ **Resolved (v0.6)** — Particle M404 (North American LTE Cat M1 with 2G fallback, built-in GNSS) has been selected and ordered separately from the already-ordered bare Muon carrier board. See Appendix A for the pin assignment built around this module's Cortex-M33 GPIO map; final electrical re-verification against the M404 datasheet (GPIO drive current, operating temperature range) remains open until the module is in hand.
 
-11b. ✅ **Resolved (v0.11)** — Owner already has a USB-C PD supply on hand and will power the Muon from it, plugged into the power-strip receptacle (ER-003). Satisfies ER-004's requirement for a genuine USB-C PD-capable source. Battery-pack operation remains available per ER-004 as backup, not primary power.
+11b. ✅ **Resolved (revised v0.19)** — Controller primary power is an adjustable 8–12 V DIN-rail AC-DC supply feeding the Muon's VIN, inside the controller enclosure (ER-004). *v0.11 history:* a USB-C PD supply on the power strip was planned; superseded 2026-11-06. Battery-pack operation remains available per ER-004 as backup, not primary power.
 
 ### Hangar
 
@@ -939,6 +1172,7 @@ For reference, readings at the owner's home were about −82 to −90 dBm / −1
 26. ✅ **Resolved** — A physical "master reset" at the hangar forces all controlled outlets off and requires a fresh remote command to re-energize anything; see FR-015a. *(v0.16: implemented as a latching ARM/SAFE switch rather than a momentary button.)*
 27. ✅ **Resolved** — Owner proposes using phone location/geofencing (e.g., a >5-mile threshold) as the "hangar unoccupied" signal for the lights-left-on alert, rather than relying solely on an inactivity timer; see updated FR-012. Exact distance threshold and companion-app mechanism are implementation details for Phase 5.
 28. ✅ **Resolved (candidate approach)** — Owner's phone presence (via the same location/companion-app mechanism as item 27) is proposed as the "known owner" signal, rather than camera or biometric identification; see updated FR-009. Won't identify people who enter without the phone (e.g., FBO staff) — acceptable, since FR-010 doesn't require positively identifying the FBO either.
+35. **Open (new in v0.18) — tune FR-003a defaults.** Log engine-compartment and hangar temperatures (FR-017) for the first several real heat cycles, ideally across a range of hangar temperatures, and set the alert threshold and interval from the observed 30-minute rise. Until then, use the defaults (5°F rise at 30 minutes). Depends on the DS2484 bench test (item 34) and CT calibration (item 30).
 
 ### Wiring/component selection (new in v0.6)
 
@@ -952,6 +1186,14 @@ For reference, readings at the owner's home were about −82 to −90 dBm / −1
 
 32. ✅ **Resolved (v0.13)** — enclosure material: **listed polycarbonate enclosure** (owner decision, 2026-10-13), replacing the original plan for a homemade wooden box. Specific enclosure model still to be selected.
 33. **Open — in-place signal soak test.** Run the 24–48 hour soak test defined in ER-005 with the controller in its final enclosure, location, and antenna position before final installation.
+
+### Interface (new in v0.19, from the Section 9A draft)
+
+36. **Open — communications-loss detection (CR-001).** The device cannot report its own disconnection. Candidates are the Particle Cloud's device online/offline status events forwarded by a webhook, or a simple external check. Particle's offline-detection latency and webhook support for these events need to be verified. *(Draft item 32.)*
+37. **Open — history storage (FR-016/017).** Particle does not retain sensor history. Options are a ring buffer on the device's flash, a webhook to a spreadsheet or log service, or deferral. FR-003a needs only the baseline taken at the ON command, so this is not Phase 1 blocking, but tuning FR-003a (item 35) needs logged heat cycles. *(Draft item 33.)*
+38. **Open — cabin-heater maximum run time (IF-006).** Firmware placeholder is 120 min. Owner to set. No default duration is needed, since commands take no duration (DEC-IF-06). *(Draft item 34.)*
+39. **Open — CT thresholds.** The ON band, the low-current fault threshold, and the OFF threshold for IF-004/IF-005. Derived from the CT calibration in item 30 and Appendix A.3. *(Draft item 35.)*
+40. **Open — Particle data-operation budget.** Confirm that the publish rate and the status polling stay within the plan's monthly allowance. *(Draft item 37. Draft item 36, the engine no-rise threshold, is superseded by item 35.)*
 
 ---
 

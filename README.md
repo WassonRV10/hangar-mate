@@ -8,8 +8,7 @@ Remote preheat control and monitoring for an aircraft in a hangar with no Wi-Fi.
 
 | Path | Contents |
 | --- | --- |
-| `docs/PRD.md` | Project requirements document (v0.17) — the design of record |
-| `docs/PRD-Section-9A-Command-Notification-Interface-DRAFT.md` | Draft command and notification interface (iPhone Shortcuts + Particle Cloud + Pushover) — not yet merged into the PRD |
+| `docs/PRD.md` | Project requirements document (v0.19) — the design of record. Section 9A defines the command and notification interface (iPhone Shortcuts + Particle Cloud + Pushover) |
 | `docs/builders-guide.md` | Step-by-step guide for the minimum build (preliminary) |
 | `presentation/` | EAA chapter presentation (PDF) |
 | `firmware/` | Particle firmware — `src/hangar_mate.ino` (relay control, toggle, ARM/SAFE reporting) |

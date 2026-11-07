@@ -10,7 +10,7 @@ Release this guide only after these are closed on Brian's bench:
 - [ ] Engine probe reads reliably at full cable length (controller to cowl)
 - [ ] Production firmware published as a shared app, with a version number
 - [ ] iPhone Shortcuts published with a token prompt at install
-- [ ] Controller power supply choice confirmed for builders (Section 4, item 8)
+- [x] Controller power supply choice confirmed for builders: 8–12 V DIN-rail supply to VIN (Section 4, item 8)
 - [ ] Fill in the bracketed prices and links in Section 4
 
 ## 1. What you're building
@@ -67,7 +67,7 @@ Estimated total is roughly $200–250 with no monthly fee; firm it up once the b
 | 5 | Waterproof DS18B20 temperature probes | 2 (+1 spare) | [$__] | Brian used a DROK 5-pack |
 | 6 | Twisted-pair cable (Cat5e or similar) | cord length | [$__] | Extends the engine probe to the cowl |
 | 7 | 19 mm illuminated latching (push-on/push-off) button, switch rated 1 A+, LED isolated from switch | 1 | [$__] | ARM/SAFE switch. A 12 V LED is dimmer at 5 V but visible |
-| 8 | Controller power supply: **[Brian to confirm — USB-C PD wall supply + C-to-C cable, or 8–12 V DIN-rail supply to VIN]** | 1 | [$__] | A USB-A charger will not power the Muon |
+| 8 | DIN-rail AC-DC power supply, adjustable 8–12 V DC output | 1 | [$__] | Feeds the Muon's VIN (6–12 V). For bench work before the box is built, a USB-C PD supply and C-to-C cable also work; a USB-A charger will not |
 | 9 | 40-pin screw-terminal breakout HAT | 1 | [$__] | No soldering on the header |
 | 10 | Resistors, 1/4 W: 15 kΩ (×2), 10 kΩ (×1) | — | <$1 | Relay input pull-down; ARM/SAFE sense divider |
 | 11 | Listed polycarbonate electrical enclosure (NEMA-rated) with cord grips | 1 | [$__] | Non-metallic so the antenna works |
@@ -98,7 +98,7 @@ Build and test the low-voltage side first, then the AC side. Keep the enclosure 
 ### 6.1 Set up the controller (30 min)
 
 1. Attach the M404 module and the LTE antenna to the Muon as shown in Particle's quick-start.
-2. Power the Muon from your chosen supply (BOM item 8). A USB-A-to-USB-C cable will not work; the Muon negotiates its voltage over USB-C PD. VIN accepts 6–12 V.
+2. For bench setup, power the Muon from a USB-C PD supply and C-to-C cable (a USB-A-to-USB-C cable will not work; the Muon negotiates its voltage over USB-C PD), or from the DIN-rail supply (BOM item 8) to VIN once its output is set. VIN accepts 6–12 V.
 3. On a computer, go to setup.particle.io, create or sign in to your Particle account, and follow the prompts. Particle recommends this route because it updates Device OS, activates the SIM and turns on the 3V3_AUX supply the header needs.
 4. Name the device (e.g., `Hangar_<tail number>`). Confirm it shows online in the Particle Console.
 
@@ -159,7 +159,7 @@ One duplex receptacle: the top half is switched by the relay (preheater), the bo
 6. **Relay NO → the switched half's brass screw.** Leave NC empty.
 7. Label the switched half **"PREHEAT — SWITCHED"** and the other **"ALWAYS ON."**
 8. Mount the relay module on standoffs with its AC terminals away from the controller and antenna. Keep AC and low-voltage wires on separate sides of the box.
-9. Controller power: **[Brian to confirm]** — either the USB-C PD supply plugs into the always-on half, or a DIN-rail 8–12 V supply is wired to line inside the box and feeds VIN.
+9. Controller power: mount the 8–12 V DIN-rail supply inside the box. Connect its AC input to the incoming line and neutral **upstream of the relay**, so it is always powered, and its ground terminal (if it has one) to the box's equipment ground. Before connecting the Muon, power the supply and set and measure its output within 6–12 V. Then wire DC+ to the Muon's VIN and DC– to GND.
 
 ### 6.6 Connect the temperature probes
 
@@ -207,20 +207,21 @@ You don't write code. You flash Brian's shared firmware, point it at your probes
 
 1. Create a dedicated Particle access token for the Shortcuts only, so you can revoke it without affecting anything else. Keep it private.
 2. Install the shared Shortcuts **[links]**. Each one asks for your device ID and token at install; they are never embedded in a shared link.
-3. You get: **Preheat** (one button that toggles the preheater) and **Hangar Status**. **All Off** is added when the production firmware publishes the `alloff` function. Preheat reads the controller's reply to the command itself, so what it shows is the state the controller actually set.
+3. You get: **Preheat** (one button that toggles the preheater) and **Hangar Status**. **All Off** is added when the production firmware publishes the `alloff` function. Preheat reads the controller's reply to the command itself, so what it shows is the state the controller actually set. "ON" means the relay is on; it does not yet prove current is flowing. That confirmation comes with the current sensor (PRD Section 9A, IF-003/IF-004).
 4. Optional: add a Siri phrase to Preheat (e.g., "Preheat the airplane"). Because it toggles, always read the reply: ON or OFF.
+5. **Never re-run Preheat just because it said "No response from hangar."** The command may have reached the controller even though the reply didn't reach you, and a second toggle would undo it. Run Hangar Status first (or check `tanisState` in the Console), then decide.
 
 | Shortcut | Cloud call | What you see |
 | --- | --- | --- |
-| Preheat | `tanis` = `toggle` | "Tanis ON", "Tanis OFF", "Relays NOT active" or "No response from hangar" |
-| Hangar Status | read `status` | States, temps, engine-minus-hangar, signal |
+| Preheat | `tanis` = `toggle` | "Tanis ON — heat not yet confirmed", "Tanis OFF", "Relays NOT active" or "No response from hangar" |
+| Hangar Status | read `tanisState`, `armState` (and `status` once released) | States, temps, engine-minus-hangar, signal |
 | All Off (later) | `alloff` | Command result |
 
 **What the controller returns** (`return_value` in the reply to a function call):
 
 | Value | Meaning | Phone shows |
 | --- | --- | --- |
-| `1` | Output is now ON | Tanis ON |
+| `1` | Output is now ON | Tanis ON — heat not yet confirmed |
 | `0` | Output is now OFF | Tanis OFF |
 | `-2` | Refused: ARM/SAFE is SAFE (or not yet read after boot); outputs stay off | Relays NOT active — arm switch is off |
 | `-1` | Bad argument | Treated as no valid response |
@@ -234,12 +235,12 @@ Until the shared Shortcuts are published, build it in the Shortcuts app:
 
 1. **Get Contents of URL.** URL `https://api.particle.io/v1/devices/<device name>/tanis`. Tap *Show More*: Method **POST**; Header `Authorization` = `Bearer <token>`; Request Body **Form**, field `arg` = `toggle`. (This one action does both GET and POST; the Method setting decides which.)
 2. **Get Dictionary Value**: *Value* for key `return_value` in *Contents of URL*. Function calls (POST) return `return_value`; variable reads (GET) return `result` instead, so don't read a variable here.
-3. **If** *Dictionary Value* **is** `1` → **Show Notification** "Tanis ON". End If.
+3. **If** *Dictionary Value* **is** `1` → **Show Notification** "Tanis ON — heat not yet confirmed". End If.
 4. **If** is `0` → "Tanis OFF". End If.
 5. **If** is `-2` → **Show Alert** "Relays NOT active — arm switch is off. Nothing changed." End If.
 6. **If** (set to **All** conditions) *Dictionary Value* **is not** `1`, **is not** `0`, **is not** `-2` → **Show Alert** "No response from hangar: " followed by the *Contents of URL* variable. End If. This also catches an empty value, which is what an offline controller produces.
 
-Copy it and change `tanis` to `cabin` for a cabin-heat button. If your phone itself has no connection, Shortcuts stops at step 1 with its own error, which still tells you it failed.
+Don't add a retry or a Repeat around step 1: toggle is not idempotent. Copy it and change `tanis` to `cabin` for a cabin-heat button. If your phone itself has no connection, Shortcuts stops at step 1 with its own error, which still tells you it failed.
 
 ## 8. Bench test checklist
 
@@ -286,7 +287,7 @@ Change one thing at a time and recheck.
 
 | Symptom | Likely cause | Check |
 | --- | --- | --- |
-| Muon won't power up | Wrong supply | USB-C needs a true PD supply and C-to-C cable; VIN needs 6–12 V |
+| Muon won't power up | Wrong supply or setting | Measure the DIN-rail output: VIN needs 6–12 V. On the bench, USB-C needs a true PD supply and C-to-C cable |
 | "No response from hangar" | No signal, no power, device offline, or token / device-name error | Read Particle's error text in the alert. Console shows online? Power at the supply? Re-run signal check at the box |
 | Preheat shows "Relays NOT active" | Button released, or a loose switched-rail or sense wire | Latch the button (LED lit); check 5 V at relay DC+; check D4 reads about 3 V; `armState` should read ARMED |
 | Shortcut says ON/OFF but the relay doesn't follow | Old firmware, or Shortcut not reading `return_value` | Flash current firmware; Shortcut step 2 must read `return_value` from the POST reply |
@@ -331,7 +332,8 @@ Avoid header pins 13, 15, 16 and 18 (boot-sensitive), 19, 21 and 23 (used intern
 
 - [ ] Receive the DS2484 bridge; confirm it and its library read the probes on the M404 (Device OS 6.x)
 - [ ] Confirm engine-probe reliability at the longest expected cable length
-- [ ] Confirm the controller power supply for builders (USB-C PD or DIN-rail to VIN)
+- [x] Controller power supply for builders: 8–12 V DIN-rail supply to VIN
+- [ ] Name a specific DIN-rail supply model and price for the BOM
 - [ ] Publish firmware, the `setprobe` command, the alert threshold setting, the Pushover webhook template and the Shortcuts
 - [ ] Fill in bracketed prices; confirm the Muon kit contents
 - [ ] Decide whether Android users get a front end
@@ -339,6 +341,6 @@ Avoid header pins 13, 15, 16 and 18 (boot-sensitive), 19, 21 and 23 (used intern
 ## Sources
 
 - Tanis TPG0001 piston preheat guide
-- Hangar Remote Monitoring & Preheat Control System PRD v0.17 and draft Section 9A (`docs/`)
+- Hangar Remote Monitoring & Preheat Control System PRD v0.19, including Section 9A (`docs/PRD.md`)
 - [Muon datasheet](https://docs.particle.io/reference/datasheets/m-series/muon-datasheet/) · [Particle plans](https://docs.particle.io/notes/plans) · [Particle store](https://store.particle.io/products/particle-maker-kit)
 - [Adafruit DS2484 (5976)](https://www.adafruit.com/product/5976)
