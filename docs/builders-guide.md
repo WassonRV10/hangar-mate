@@ -10,8 +10,8 @@ Release this guide only after these are closed on Brian's bench:
 - [ ] Engine probe reads reliably at full cable length (controller to cowl)
 - [ ] Production firmware published as a shared app, with a version number
 - [ ] iPhone Shortcuts published with a token prompt at install
-- [x] Controller power supply choice confirmed for builders: 8–12 V DIN-rail supply to VIN (Section 4, item 8)
-- [ ] Fill in the bracketed prices and links in Section 4
+- [x] Controller power supply choice confirmed for builders: 8–12 V DIN-rail supply to VIN (Section 4, item 7)
+- [ ] Fill in the remaining bracketed prices and links in Section 4
 
 ## 1. What you're building
 
@@ -38,7 +38,7 @@ You own your installation. This device switches 120 V in a hangar with fuel and 
 4. **Relay trigger jumper on active-high, with the 15 kΩ pull-down fitted.** In active-low, Brian's outlet energized at power-up before the firmware ran.
 5. **Electrical enclosure, listed receptacle, 15 A rated cord and wiring.** A listed polycarbonate enclosure is recommended, because it is tested to contain a 120 V fault near fuel. If you use an unlisted plastic box (see the alternate in Section 4), mount it away from fuel and the aircraft. No homemade wooden boxes.
 6. **One plug, one circuit.** Plug the enclosure's cord directly into the hangar receptacle, not into another power strip, and stay within your circuit's capacity.
-7. **Use a grounded 14-gauge outdoor-rated extension cord** for the preheater. Tanis's cord table supports this gauge with margin for typical runs.
+7. **Use a grounded 12- or 14-gauge outdoor-rated extension cord** for the preheater. Tanis's cord table supports 14-gauge with margin for typical runs; 12-gauge adds more.
 8. **Mount everything off the floor** and away from where water collects.
 9. **Check your hangar lease and airport rules** on unattended electrical devices before installing.
 10. **Don't add an unattended cabin heater** to the minimum build. Cabin heat needs its own relay, a timeout and a low setting (Section 12).
@@ -56,27 +56,25 @@ Confirm your hangar can support this before ordering parts. Ten minutes on site 
 
 ## 4. Bill of materials
 
-Estimated total is roughly $200–250 with no monthly fee; firm it up once the bracketed items are priced. Prices checked Oct 2026 where linked.
+Prices are what Brian paid (Nov 2026). Total for the items below is about **$284**, with no monthly fee. Magnets, tether and small supplies are extra.
 
-| # | Part | Qty | Approx. price | Notes |
+| # | Part | Qty | Price | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | [Particle Muon kit, North America (M404 LTE-M/2G)](https://store.particle.io/products/particle-maker-kit) | 1 | $79.95 | Controller + cellular module. Confirm the kit includes the LTE antenna |
-| 2 | 5 V-trigger, 30 A single-channel relay module, opto-isolated input, NO/COM/NC terminals, trigger-polarity jumper | 1 | [$__] | Brian used a hiBCTR 2-pack; the spare covers cabin heat later |
-| 3 | [Adafruit DS2484 I2C-to-1-Wire bridge (5976)](https://www.adafruit.com/product/5976) | 1 | $7.50 | Probes connect here; plugs into the Qwiic port |
-| 4 | STEMMA QT / Qwiic cable, 100 mm or longer | 1 | [$__] | Muon Qwiic port to DS2484 |
-| 5 | Waterproof DS18B20 temperature probes | 2 (+1 spare) | [$__] | Brian used a DROK 5-pack |
-| 6 | Twisted-pair cable (Cat5e or similar) | cord length | [$__] | Extends the engine probe to the cowl |
-| 7 | 19 mm illuminated latching (push-on/push-off) button, switch rated 1 A+, LED isolated from switch | 1 | [$__] | ARM/SAFE switch. A 12 V LED is dimmer at 5 V but visible |
-| 8 | DIN-rail AC-DC power supply, adjustable 8–12 V DC output | 1 | [$__] | Feeds the Muon's VIN (6–12 V). For bench work before the box is built, a USB-C PD supply and C-to-C cable also work; a USB-A charger will not |
-| 9 | 40-pin screw-terminal breakout HAT | 1 | [$__] | No soldering on the header |
-| 10 | Resistors, 1/4 W: 15 kΩ (×2), 10 kΩ (×1) | — | <$1 | Relay input pull-down; ARM/SAFE sense divider |
-| 11 | **Recommended:** listed (UL/ETL) polycarbonate electrical enclosure, NEMA-rated, with cord grips | 1 | [$__] | Non-metallic so the antenna works. **Alternate (what Brian used):** Joinfworld lockable NEMA 4 plastic enclosure, 11.4 × 7.5 × 5.5 in, clear ABS cover, grid plate, DIN rail, 1/2" NPT glands, about $38. It is not listed and states no flame rating; Brian accepted that because his box is at the man door, 10+ ft from fuel. Decide for your own hangar. |
-| 12 | Listed 15 A duplex receptacle (tamper-resistant fine) | 1 | [$__] | Hot-side tab broken: one half switched, one always on |
-| 13 | Supply cord, 14/3 grounded, 15 A plug | 1 | [$__] | Enclosure inlet |
-| 14 | 14 AWG wire, listed lever or wire-nut connectors | — | [$__] | Internal AC wiring |
-| 15 | Magnets rated for the box weight (in shear), magnetic hook, short tether | 1 set | [$__] | No-drill mounting on steel walls |
-| 16 | 14-ga grounded outdoor extension cord | 1 | [$__] | Skip if you already have one |
-| 17 | 22–24 AWG hookup wire, zip ties, electrical tape, labels | — | [$__] | |
+| 1 | [Particle Muon kit, North America (M404 LTE-M/2G)](https://store.particle.io/products/particle-maker-kit) | 1 | $85 | Controller + cellular module. Confirm the kit includes the LTE antenna |
+| 2 | 5 V-trigger, 30 A single-channel relay module, opto-isolated input, NO/COM/NC terminals, trigger-polarity jumper | 2-pack | $5 | Brian used a hiBCTR 2-pack; the spare covers cabin heat later |
+| 3 | [Adafruit DS2484 I2C-to-1-Wire bridge (5976)](https://www.adafruit.com/product/5976) + STEMMA QT / Qwiic cable (100 mm or longer) | 1 each | $15 | Probes connect to the bridge; it plugs into the Muon's Qwiic port |
+| 4 | Waterproof DS18B20 temperature probes | 3-pack | $6 | 2 used (engine, hangar), 1 spare |
+| 5 | 3-conductor 22 AWG cable | 50 ft | $20 | Extends the engine probe to the cowl (data, power, ground) |
+| 6 | Deutsch connectors | 1 set | $10 | **[Brian to confirm use — presumably the engine-probe disconnect]** |
+| 7 | Mean Well 12 V DIN-rail power supply | 1 | $14 | Feeds the Muon's VIN (6–12 V). 12 V is the top of that range: adjust the output trimmer down to about 11 V and measure before connecting the Muon. For bench work, a USB-C PD supply and C-to-C cable also work; a USB-A charger will not |
+| 8 | 8-output DIN-rail power distribution module | 1 | $15 | **[Brian to confirm what it distributes]** |
+| 9 | WAGO DIN-rail terminal blocks | 1 set | $15 | Internal AC wiring connections |
+| 10 | 19 mm illuminated latching (push-on/push-off) button (switch rated 1 A+, LED isolated from switch), 40-pin screw-terminal HAT, resistors (15 kΩ ×2, 10 kΩ ×1) | 1 set | $19 | ARM/SAFE switch (a 12 V LED is dimmer at 5 V but visible); no soldering on the header; relay input pull-down and ARM/SAFE sense divider |
+| 11 | Enclosure, listed 15 A duplex receptacle, 14/3 grounded supply cord with 15 A plug | 1 each | $38 | **Recommended enclosure:** listed (UL/ETL) polycarbonate, NEMA-rated, with cord grips; expect it to cost more than the alternate. **Alternate (what Brian used):** Joinfworld lockable NEMA 4 plastic enclosure, 11.4 × 7.5 × 5.5 in, clear ABS cover, grid plate, DIN rail, 1/2" NPT glands. It is not listed and states no flame rating; Brian accepted that because his box is at the man door, 10+ ft from fuel. Decide for your own hangar. Non-metallic either way, so the antenna works. Receptacle: hot-side tab broken, one half switched, one always on |
+| 12 | 12-ga outlets, 2 ft | — | $17 | **[Brian to confirm use]** |
+| 13 | 12-ga grounded outdoor extension cord | 1 | $25 | Preheater cord. Skip if you already have a 12- or 14-ga grounded outdoor cord |
+| 14 | Magnets rated for the box weight (in shear), magnetic hook, short tether | 1 set | [$__] | No-drill mounting on steel walls |
+| 15 | 14 AWG wire, 22–24 AWG hookup wire, zip ties, electrical tape, labels | — | [$__] | |
 
 **Accounts (free):** Particle (Free Plan: up to 100 devices and 100K data operations per month, cellular data included — [plan details](https://docs.particle.io/notes/plans)) and Pushover for push alerts (one-time app purchase; check current price).
 
@@ -98,7 +96,7 @@ Build and test the low-voltage side first, then the AC side. Keep the enclosure 
 ### 6.1 Set up the controller (30 min)
 
 1. Attach the M404 module and the LTE antenna to the Muon as shown in Particle's quick-start.
-2. For bench setup, power the Muon from a USB-C PD supply and C-to-C cable (a USB-A-to-USB-C cable will not work; the Muon negotiates its voltage over USB-C PD), or from the DIN-rail supply (BOM item 8) to VIN once its output is set. VIN accepts 6–12 V.
+2. For bench setup, power the Muon from a USB-C PD supply and C-to-C cable (a USB-A-to-USB-C cable will not work; the Muon negotiates its voltage over USB-C PD), or from the DIN-rail supply (BOM item 7) to VIN once its output is set. VIN accepts 6–12 V.
 3. On a computer, go to setup.particle.io, create or sign in to your Particle account, and follow the prompts. Particle recommends this route because it updates Device OS, activates the SIM and turns on the 3V3_AUX supply the header needs.
 4. Name the device (e.g., `Hangar_<tail number>`). Confirm it shows online in the Particle Console.
 
@@ -170,7 +168,7 @@ One duplex receptacle: the top half is switched by the relay (preheater), the bo
 
 ### 6.7 Extend the engine probe and attach it to the cord
 
-1. Extend the ENGINE probe with twisted-pair cable long enough to follow the extension cord from the enclosure to the cowl. Use one pair for data + ground and a second pair for power. Solder and heat-shrink the splices.
+1. Extend the ENGINE probe with the 3-conductor 22 AWG cable, long enough to follow the extension cord from the enclosure to the cowl: one conductor each for data, power and ground. Solder and heat-shrink the splices.
 2. **Test at full length on the bench before installing** (Section 8, test 9).
 3. Tape or zip-tie the probe tip 4–6 inches back from the extension cord's plug end, so it sits inside the cowl when the cord is plugged in but doesn't touch hot parts. Secure the cable along the cord every 1–2 feet so the two always move together.
 
@@ -333,7 +331,7 @@ Avoid header pins 13, 15, 16 and 18 (boot-sensitive), 19, 21 and 23 (used intern
 - [ ] Receive the DS2484 bridge; confirm it and its library read the probes on the M404 (Device OS 6.x)
 - [ ] Confirm engine-probe reliability at the longest expected cable length
 - [x] Controller power supply for builders: 8–12 V DIN-rail supply to VIN
-- [ ] Name a specific DIN-rail supply model and price for the BOM
+- [x] DIN-rail supply: Mean Well 12 V, $14
 - [ ] Publish firmware, the `setprobe` command, the alert threshold setting, the Pushover webhook template and the Shortcuts
 - [ ] Fill in bracketed prices; confirm the Muon kit contents
 - [ ] Decide whether Android users get a front end
