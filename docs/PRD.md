@@ -1,10 +1,12 @@
 # Hangar Remote Monitoring & Preheat Control System
-## Project Requirements Document — Version 0.19
+## Project Requirements Document — Version 0.20
 
 **Project status:** Prototype — bench verification in progress  
 **Primary application:** Remote aircraft hangar monitoring and preheat control  
 **Communications constraint:** No Wi-Fi available at hangar  
 **Proposed controller platform:** Particle Muon carrier board + M404 M-SoM
+
+**Revision notes (v0.20):** **Enclosure selected** (owner decision, 2026-11-06): a Joinfworld lockable NEMA 4 plastic enclosure, 11.4 × 7.5 × 5.5 in, with clear ABS cover, grid mounting plate, internal DIN rail, and 1/2" NPT cable glands. This is a **deviation** from ER-005's v0.13 requirement for a *listed polycarbonate* enclosure: the seller's listing states no UL/ETL listing or flame rating, and the cover is ABS. Accepted by the owner because the box is purpose-made for electrical equipment, is mounted at the man door at least 10 ft from the nearest fuel tank, and is non-metallic as the antenna requires. The box shall be checked on arrival for any listing mark or UL94 flame rating; if one is present, the deviation is closed. Affects ER-005 and Section 25 item 32.
 
 **Revision notes (v0.19):** **Merges the Section 9A Command & Notification Interface** (drafted separately in v0.12) into this document, updated to match the firmware as built (owner decision, 2026-11-06). Changes from the v0.12 draft: (1) `tanis` and `cabin` accept `on | off | toggle`, and the separate Preheat On/Off Shortcuts are replaced by one **Preheat** toggle Shortcut (DEC-IF-05); (2) return codes now report the resulting state (`1` = now ON, `0` = now OFF; previously `1` = changed, `0` = already in that state), and `-2` covers SAFE or not-yet-read after boot for every command; (3) the cabin heater's `on,<min>` duration argument is **dropped** — the controller enforces a fixed maximum run time (DEC-IF-06); (4) **Phase 1 allowance on IF-003** — until CT confirmation exists, the Preheat Shortcut may show the relay as ON from the return code, labeled "heat not yet confirmed" (DEC-IF-07); (5) new **IF-010**: the phone shall not auto-retry commands, because `toggle` is not idempotent; (6) implemented variables (`tanisState`, `cabinState`, `armState`) and events (`hm/arm`, `hm/cabin`) recorded, replacing the draft's `hm/reset` and `hm/cabin/on`/`timeout`; (7) the draft's engine no-rise event is redefined by FR-003a; (8) the draft's open items 32–37 collided with existing Section 25 numbers and are renumbered 36–40 (the engine no-rise item is superseded by item 35). Also: **controller power** changes to an **8–12 V DIN-rail AC-DC supply feeding the Muon's VIN** (owner decision, 2026-11-06), superseding the v0.11 USB-C PD plan (ER-004, item 11b); stale "M-SoM not yet selected" text in Sections 3, 15, and ER-004 is updated (the M404 was selected in v0.6); and the Muon's LoRaWAN radio is recorded as not used (owner decision, 2026-11-06). Affects Section 3, FR-013, FR-014, Section 9A (new), CR-002, ER-004, Section 15, Section 18, and Section 25 (items 11b, 36–40).
 
@@ -739,6 +741,8 @@ Rationale:
 
 **Enclosure (decision, see item 32):** the enclosure shall be a **listed polycarbonate electrical enclosure** (NEMA-rated), with listed receptacles mounted in it.
 
+**Selected (v0.20) — accepted deviation:** Joinfworld lockable NEMA 4 enclosure, 11.4 × 7.5 × 5.5 in, clear ABS cover, grid plate, DIN rail, 1/2" NPT glands. No listing or flame rating is stated by the seller, so it does not meet the "listed polycarbonate" requirement above. The owner accepted this on 2026-11-06 because the box is designed for electrical equipment and is mounted at the man door, at least 10 ft from the nearest fuel tank. The non-metallic, NEMA-rated, wall-mount, and antenna requirements are still met. The lock also serves SR-003. Check the box on arrival for a listing mark or UL94 rating.
+
 - Non-metallic material is required so the enclosure does not block the cellular antenna.
 - A listed enclosure is recommended over a homemade wooden box because it is designed to contain a 120 V wiring or relay fault. Wood is combustible, and this enclosure sits in a hangar with fuel vapors and an aircraft nearby.
 - Heat is not a significant factor. The selected relays are electromechanical (Appendix A.1), so internal heat is limited to relay coils and the controller.
@@ -1184,7 +1188,7 @@ For reference, readings at the owner's home were about −82 to −90 dBm / −1
 
 ### Installation (new in v0.13)
 
-32. ✅ **Resolved (v0.13)** — enclosure material: **listed polycarbonate enclosure** (owner decision, 2026-10-13), replacing the original plan for a homemade wooden box. Specific enclosure model still to be selected.
+32. ✅ **Resolved (v0.13)** — enclosure material: **listed polycarbonate enclosure** (owner decision, 2026-10-13), replacing the original plan for a homemade wooden box. *v0.20:* Joinfworld lockable NEMA 4 plastic enclosure (11.4 × 7.5 × 5.5 in, ABS cover, DIN rail) selected by the owner as an accepted deviation — no listing or flame rating stated (see ER-005). Check for a listing mark on arrival.
 33. **Open — in-place signal soak test.** Run the 24–48 hour soak test defined in ER-005 with the controller in its final enclosure, location, and antenna position before final installation.
 
 ### Interface (new in v0.19, from the Section 9A draft)
