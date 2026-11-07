@@ -2,7 +2,7 @@
 
 Oct 31, 2026 · Brian
 
-**Status: PRELIMINARY — do not distribute yet.** This guide describes the minimum build of Brian's prototype: one opto-isolated relay module, one switched receptacle in a listed polycarbonate enclosure, an engine probe and a hangar probe, and a latching ARM/SAFE switch that cuts relay power in hardware. The relay and ARM/SAFE design are bench-verified on Brian's unit.
+**Status: PRELIMINARY — do not distribute yet.** This guide describes the minimum build of Brian's prototype: one opto-isolated relay module, one switched receptacle in a non-metallic electrical enclosure (listed polycarbonate recommended), an engine probe and a hangar probe, and a latching ARM/SAFE switch that cuts relay power in hardware. The relay and ARM/SAFE design are bench-verified on Brian's unit.
 
 Release this guide only after these are closed on Brian's bench:
 
@@ -36,7 +36,7 @@ You own your installation. This device switches 120 V in a hangar with fuel and 
 2. **Unplug the preheater before fueling or starting the engine.** The Tanis guide requires it. The remote system does not replace this step — put it on your checklist.
 3. **Load through COM and NO only, never NC.** Wired through NC, the outlet is live whenever the controller is off or dead, which inverts every fail-safe in this design.
 4. **Relay trigger jumper on active-high, with the 15 kΩ pull-down fitted.** In active-low, Brian's outlet energized at power-up before the firmware ran.
-5. **Listed enclosure and listed receptacle, 15 A rated cord and wiring.** No homemade wooden boxes; this one has to contain a 120 V fault near fuel.
+5. **Electrical enclosure, listed receptacle, 15 A rated cord and wiring.** A listed polycarbonate enclosure is recommended, because it is tested to contain a 120 V fault near fuel. If you use an unlisted plastic box (see the alternate in Section 4), mount it away from fuel and the aircraft. No homemade wooden boxes.
 6. **One plug, one circuit.** Plug the enclosure's cord directly into the hangar receptacle, not into another power strip, and stay within your circuit's capacity.
 7. **Use a grounded 14-gauge outdoor-rated extension cord** for the preheater. Tanis's cord table supports this gauge with margin for typical runs.
 8. **Mount everything off the floor** and away from where water collects.
@@ -70,7 +70,7 @@ Estimated total is roughly $200–250 with no monthly fee; firm it up once the b
 | 8 | DIN-rail AC-DC power supply, adjustable 8–12 V DC output | 1 | [$__] | Feeds the Muon's VIN (6–12 V). For bench work before the box is built, a USB-C PD supply and C-to-C cable also work; a USB-A charger will not |
 | 9 | 40-pin screw-terminal breakout HAT | 1 | [$__] | No soldering on the header |
 | 10 | Resistors, 1/4 W: 15 kΩ (×2), 10 kΩ (×1) | — | <$1 | Relay input pull-down; ARM/SAFE sense divider |
-| 11 | Listed polycarbonate electrical enclosure (NEMA-rated) with cord grips | 1 | [$__] | Non-metallic so the antenna works |
+| 11 | **Recommended:** listed (UL/ETL) polycarbonate electrical enclosure, NEMA-rated, with cord grips | 1 | [$__] | Non-metallic so the antenna works. **Alternate (what Brian used):** Joinfworld lockable NEMA 4 plastic enclosure, 11.4 × 7.5 × 5.5 in, clear ABS cover, grid plate, DIN rail, 1/2" NPT glands, about $38. It is not listed and states no flame rating; Brian accepted that because his box is at the man door, 10+ ft from fuel. Decide for your own hangar. |
 | 12 | Listed 15 A duplex receptacle (tamper-resistant fine) | 1 | [$__] | Hot-side tab broken: one half switched, one always on |
 | 13 | Supply cord, 14/3 grounded, 15 A plug | 1 | [$__] | Enclosure inlet |
 | 14 | 14 AWG wire, listed lever or wire-nut connectors | — | [$__] | Internal AC wiring |
