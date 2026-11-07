@@ -2,7 +2,7 @@
 
 Oct 31, 2026 · Brian
 
-**Status: PRELIMINARY — do not distribute yet.** This guide describes the minimum build of Brian's prototype: one opto-isolated relay module, one switched receptacle in a non-metallic electrical enclosure (listed polycarbonate recommended), an engine probe and a hangar probe, and a latching ARM/SAFE switch that cuts relay power in hardware. The relay and ARM/SAFE design are bench-verified on Brian's unit.
+**Status: PRELIMINARY — do not distribute yet.** This guide describes the minimum build of Brian's prototype: one opto-isolated relay module, one switched outlet (a short pigtail cord) from a non-metallic electrical enclosure (listed polycarbonate recommended), an engine probe and a hangar probe, and a latching ARM/SAFE switch that cuts relay power in hardware. The relay and ARM/SAFE design are bench-verified on Brian's unit.
 
 Release this guide only after these are closed on Brian's bench:
 
@@ -17,7 +17,7 @@ Release this guide only after these are closed on Brian's bench:
 
 You'll build a cellular controller that turns your Tanis (or similar plug-in preheater) on and off from an iPhone and shows engine and hangar temperatures, so you can confirm the engine is warming before you leave home. It needs no hangar Wi-Fi and no monthly fee.
 
-**How it works:** an iPhone Shortcut calls the Particle Cloud, which reaches the controller over LTE-M cellular. The controller drives a relay that switches a receptacle powering your preheater extension cord. Two waterproof probes report back: one taped to the extension cord so it sits inside the cowl, one for hangar air. The engine-minus-hangar difference is your proof of heat.
+**How it works:** an iPhone Shortcut calls the Particle Cloud, which reaches the controller over LTE-M cellular. The controller drives a relay that switches a short pigtail cord powering your preheater extension cord. Two waterproof probes report back: one taped to the extension cord so it sits inside the cowl, one for hangar air. The engine-minus-hangar difference is your proof of heat.
 
 **What the minimum build does:**
 
@@ -36,7 +36,7 @@ You own your installation. This device switches 120 V in a hangar with fuel and 
 2. **Unplug the preheater before fueling or starting the engine.** The Tanis guide requires it. The remote system does not replace this step — put it on your checklist.
 3. **Load through COM and NO only, never NC.** Wired through NC, the outlet is live whenever the controller is off or dead, which inverts every fail-safe in this design.
 4. **Relay trigger jumper on active-high, with the 15 kΩ pull-down fitted.** In active-low, Brian's outlet energized at power-up before the firmware ran.
-5. **Electrical enclosure, listed receptacle, 15 A rated cord and wiring.** A listed polycarbonate enclosure is recommended, because it is tested to contain a 120 V fault near fuel. If you use an unlisted plastic box (see the alternate in Section 4), mount it away from fuel and the aircraft. No homemade wooden boxes.
+5. **Electrical enclosure, 15 A rated cords, wiring and terminal blocks.** A listed polycarbonate enclosure is recommended, because it is tested to contain a 120 V fault near fuel. If you use an unlisted plastic box (see the alternate in Section 4), mount it away from fuel and the aircraft. No homemade wooden boxes.
 6. **One plug, one circuit.** Plug the enclosure's cord directly into the hangar receptacle, not into another power strip, and stay within your circuit's capacity.
 7. **Use a grounded 12- or 14-gauge outdoor-rated extension cord** for the preheater. Tanis's cord table supports 14-gauge with margin for typical runs; 12-gauge adds more.
 8. **Mount everything off the floor** and away from where water collects.
@@ -65,13 +65,13 @@ Prices are what Brian paid (Nov 2026). Total for the items below is about **$284
 | 3 | [Adafruit DS2484 I2C-to-1-Wire bridge (5976)](https://www.adafruit.com/product/5976) + STEMMA QT / Qwiic cable (100 mm or longer) | 1 each | $15 | Probes connect to the bridge; it plugs into the Muon's Qwiic port |
 | 4 | Waterproof DS18B20 temperature probes | 3-pack | $6 | 2 used (engine, hangar), 1 spare |
 | 5 | 3-conductor 22 AWG cable | 50 ft | $20 | Extends the engine probe to the cowl (data, power, ground) |
-| 6 | Deutsch connectors | 1 set | $10 | **[Brian to confirm use — presumably the engine-probe disconnect]** |
+| 6 | Deutsch connectors, 3-pin | 1 set | $10 | Disconnect between the box-side probe cable and the probe that rides on the extension cord |
 | 7 | Mean Well 12 V DIN-rail power supply | 1 | $14 | Feeds the Muon's VIN (6–12 V). 12 V is the top of that range: adjust the output trimmer down to about 11 V and measure before connecting the Muon. For bench work, a USB-C PD supply and C-to-C cable also work; a USB-A charger will not |
-| 8 | 8-output DIN-rail power distribution module | 1 | $15 | **[Brian to confirm what it distributes]** |
+| 8 | 8-output DIN-rail power distribution module | 1 | $15 | More 5 V and GND connection points than the Muon header provides. Low-voltage side only; relay DC+ must still come from the ARM/SAFE switch (6.3) |
 | 9 | WAGO DIN-rail terminal blocks | 1 set | $15 | Internal AC wiring connections |
 | 10 | 19 mm illuminated latching (push-on/push-off) button (switch rated 1 A+, LED isolated from switch), 40-pin screw-terminal HAT, resistors (15 kΩ ×2, 10 kΩ ×1) | 1 set | $19 | ARM/SAFE switch (a 12 V LED is dimmer at 5 V but visible); no soldering on the header; relay input pull-down and ARM/SAFE sense divider |
-| 11 | Enclosure, listed 15 A duplex receptacle, 14/3 grounded supply cord with 15 A plug | 1 each | $38 | **Recommended enclosure:** listed (UL/ETL) polycarbonate, NEMA-rated, with cord grips; expect it to cost more than the alternate. **Alternate (what Brian used):** Joinfworld lockable NEMA 4 plastic enclosure, 11.4 × 7.5 × 5.5 in, clear ABS cover, grid plate, DIN rail, 1/2" NPT glands. It is not listed and states no flame rating; Brian accepted that because his box is at the man door, 10+ ft from fuel. Decide for your own hangar. Non-metallic either way, so the antenna works. Receptacle: hot-side tab broken, one half switched, one always on |
-| 12 | 12-ga outlets, 2 ft | — | $17 | **[Brian to confirm use]** |
+| 11 | Enclosure and 14/3 grounded supply cord with 15 A plug | 1 each | $38 | **Recommended enclosure:** listed (UL/ETL) polycarbonate, NEMA-rated, with cord grips; expect it to cost more than the alternate. **Alternate (what Brian used):** Joinfworld lockable NEMA 4 plastic enclosure, 11.4 × 7.5 × 5.5 in, clear ABS cover, grid plate, DIN rail, 1/2" NPT glands. It is not listed and states no flame rating; Brian accepted that because his box is at the man door, 10+ ft from fuel. Decide for your own hangar. Non-metallic either way, so the antenna works. Needs one gland per cord |
+| 12 | 12-ga extension cord, 2 ft (female end) | 1 (2 with cabin heat) | $17 | Preheat pigtail: male plug cut off, enters through a gland, wired to the relay |
 | 13 | 12-ga grounded outdoor extension cord | 1 | $25 | Preheater cord. Skip if you already have a 12- or 14-ga grounded outdoor cord |
 | 14 | Magnets rated for the box weight (in shear), magnetic hook, short tether | 1 set | [$__] | No-drill mounting on steel walls |
 | 15 | 14 AWG wire, 22–24 AWG hookup wire, zip ties, electrical tape, labels | — | [$__] | |
@@ -84,7 +84,8 @@ Prices are what Brian paid (Nov 2026). Total for the items below is about **$284
 - Wire strippers and flush cutters
 - Digital multimeter (continuity and DC volts)
 - Plug-in receptacle tester (3-light)
-- Drill and step bit for the enclosure (button, receptacle, cord grips)
+- Drill and step bit for the enclosure (button, extra glands)
+- Deutsch crimp tool for the contacts you buy
 - Computer with Chrome or Edge (device setup and firmware flashing)
 - iPhone with the Shortcuts and Pushover apps
 - A lamp or other small 120 V load for bench testing
@@ -122,6 +123,8 @@ Pins 1 and 17 are 3V3. **Do not power the relay module from 3V3** — it will no
 4. Wire **Muon GND → module DC–**.
 5. Module **DC+** connects to the ARM/SAFE switched rail in 6.4, not directly to 5V.
 
+**If you use the DIN-rail power distribution module** to get more 5 V and GND connections than the Muon header has: it may carry GND and the *unswitched* 5 V that feeds the ARM/SAFE switch, but **relay DC+ must come only from switch lead B**. If relay DC+ is on an unswitched 5 V terminal, SAFE will not cut the relay. Keep this module on the low-voltage side, never on the AC blocks. Bench test 5 (Section 8) proves it.
+
 ### 6.4 Wire the ARM/SAFE switch
 
 The latching button sits in the relay module's 5 V feed. Latched (LED lit) = ARMED; released (LED dark) = SAFE, and the relay coil has no power no matter what the firmware does.
@@ -147,17 +150,19 @@ The firmware reads D4 continuously: HIGH = ARMED, LOW = SAFE. The pin uses an in
 
 ### 6.5 Wire the AC side
 
-One duplex receptacle: the top half is switched by the relay (preheater), the bottom half is always on.
+There is no receptacle in the box. The supply cord comes in through one gland, and a short 12-gauge cord with a female end (the "preheat pigtail") goes out through another. WAGO DIN-rail terminal blocks make the internal hot, neutral and ground connections.
 
-1. Mount the receptacle in the enclosure lid or wall. **Break off the brass (hot-side) tab only**; leave the silver (neutral) tab in place.
-2. Bring the 14/3 supply cord in through a cord grip.
-3. **Green (ground) → receptacle ground screw.**
-4. **White (neutral) → a silver screw.** The intact tab feeds both halves.
-5. **Black (hot) →** split with a listed connector into two 14 AWG leads: one to **relay COM**, one to the **always-on half's brass screw**.
-6. **Relay NO → the switched half's brass screw.** Leave NC empty.
-7. Label the switched half **"PREHEAT — SWITCHED"** and the other **"ALWAYS ON."**
-8. Mount the relay module on standoffs with its AC terminals away from the controller and antenna. Keep AC and low-voltage wires on separate sides of the box.
-9. Controller power: mount the 8–12 V DIN-rail supply inside the box. Connect its AC input to the incoming line and neutral **upstream of the relay**, so it is always powered, and its ground terminal (if it has one) to the box's equipment ground. Before connecting the Muon, power the supply and set and measure its output within 6–12 V. Then wire DC+ to the Muon's VIN and DC– to GND.
+1. Cut the male plug off the 2 ft 12-gauge cord. Bring its cut end in through a watertight gland, and the 14/3 supply cord in through a second gland. Check that each gland's clamping range fits the cord's outside diameter, and tighten it on the jacket, not the conductors.
+2. Mount three WAGO blocks on the DIN rail: **HOT**, **NEUTRAL** and **GROUND** (use the green/yellow ground block for ground). Check that the blocks are rated for 12 AWG and at least 15 A.
+3. **Supply cord:** black → HOT, white → NEUTRAL, green → GROUND.
+4. **HOT → relay COM.** **Relay NO → the pigtail's black.** Leave NC empty. Confirm the relay's screw terminals accept 12 AWG.
+5. **Pigtail white → NEUTRAL. Pigtail green → GROUND.**
+6. Label the pigtail's female end **"PREHEAT — SWITCHED."**
+7. Mount the relay module on standoffs with its AC terminals away from the controller and antenna. Keep AC and low-voltage wires on separate sides of the box.
+8. Controller power: mount the DIN-rail supply. Wire its AC input from **HOT** and **NEUTRAL** (upstream of the relay, so it is always powered) and its ground terminal to **GROUND**. Before connecting the Muon, power the supply, turn its output down to about 11 V and measure it. Then wire DC+ to the Muon's VIN and DC– to GND.
+9. With the lid closed and the cord plugged in, check the pigtail with the receptacle tester: dark when SAFE or commanded off, "correct wiring" when on.
+
+Phase 2 (cabin heat) adds a second pigtail and gland, wired the same way to the second relay.
 
 ### 6.6 Connect the temperature probes
 
@@ -170,13 +175,14 @@ One duplex receptacle: the top half is switched by the relay (preheater), the bo
 
 1. Extend the ENGINE probe with the 3-conductor 22 AWG cable, long enough to follow the extension cord from the enclosure to the cowl: one conductor each for data, power and ground. Solder and heat-shrink the splices.
 2. **Test at full length on the bench before installing** (Section 8, test 9).
-3. Tape or zip-tie the probe tip 4–6 inches back from the extension cord's plug end, so it sits inside the cowl when the cord is plugged in but doesn't touch hot parts. Secure the cable along the cord every 1–2 feet so the two always move together.
+3. Put a 3-pin **Deutsch connector** in the probe cable near the enclosure end of the extension cord. The cord and its probe can then be unplugged and taken away together, leaving the box-side cable in the hangar. Use the crimp tool made for the contacts, and add the sealing plugs and wedge lock.
+4. Tape or zip-tie the probe tip 4–6 inches back from the extension cord's plug end, so it sits inside the cowl when the cord is plugged in but doesn't touch hot parts. Secure the cable along the cord every 1–2 feet so the two always move together.
 
 ### 6.8 Final assembly
 
 1. Mount the Muon, HAT and DS2484 at the end of the enclosure away from the relay and AC wiring. Mount the ARM/SAFE button where it's easy to reach.
 2. Put the antenna on the top or side facing the hangar door, at least 1–2 inches from any steel once mounted.
-3. Bring probe cables out through a cord grip.
+3. Bring probe cables out through a gland.
 4. Label the box: "Preheat controller — SAFE (button out) = outlet off. Unplug the preheater before fueling or engine start."
 
 ## 7. Firmware and iPhone Shortcuts
@@ -244,7 +250,7 @@ Don't add a retry or a Repeat around step 1: toggle is not idempotent. Copy it a
 
 These are the tests Brian's prototype passed. Plug a lamp into the switched half. Pass every test before taking it to the hangar.
 
-- [ ] **1. Receptacle wiring.** Lid closed, cord plugged in, ARMED, outlet commanded on: the 3-light tester shows correct wiring on both halves. Commanded off: switched half dead, always-on half live.
+- [ ] **1. Outlet wiring.** Lid closed, cord plugged in, ARMED, outlet commanded on: the 3-light tester in the pigtail shows correct wiring. Commanded off: pigtail dead.
 - [ ] **2. 3.3 V trigger.** ARMED. Run Preheat ten times: the relay switches cleanly every time and the phone alternates Tanis ON / Tanis OFF, matching the lamp.
 - [ ] **3. Power-up stays off.** Remove and restore controller power five times. The lamp never lights.
 - [ ] **4. Reset and update stay off.** Press the Muon's reset button, then reflash the firmware over cellular. The lamp never lights.
@@ -290,7 +296,7 @@ Change one thing at a time and recheck.
 | Preheat shows "Relays NOT active" | Button released, or a loose switched-rail or sense wire | Latch the button (LED lit); check 5 V at relay DC+; check D4 reads about 3 V; `armState` should read ARMED |
 | Shortcut says ON/OFF but the relay doesn't follow | Old firmware, or Shortcut not reading `return_value` | Flash current firmware; Shortcut step 2 must read `return_value` from the POST reply |
 | Relay doesn't click | Module DC+ on 3V3, jumper on active-low, or SAFE | DC+ must come from 5V through the switch; jumper active-high |
-| Relay clicks but switched half is dead | Load on NC, or loose NO / brass-screw wire | Wiring per 6.5; receptacle tester |
+| Relay clicks but pigtail is dead | Load on NC, or loose NO or WAGO connection | Wiring per 6.5; receptacle tester |
 | Outlet is on at power-up or when it should be off | Load wired through NC, or jumper on active-low | Fix immediately: COM → NO, active-high, 15 kΩ pull-down fitted |
 | Both halves switch together | Brass tab not broken | Unplug; break the brass tab |
 | A probe missing or reads nonsense | Loose terminal, wire order, or cable length | Recheck data / power / ground; test the engine probe without its extension |
@@ -303,7 +309,7 @@ Each add-on uses spare controller pins and leaves the minimum build unchanged. G
 
 | Add-on | Hardware | Notes |
 | --- | --- | --- |
-| Cabin heat | Second relay module on D3 (header 36, HAT IO16), same configuration, DC+ on the same ARM/SAFE rail; second switched receptacle; third probe; ceramic heater | Heater must have tip-over and overheat shutoff and be listed. Run it on its lowest setting (Brian uses 700 W, about 9.8 A combined with the Tanis) and placard it. Firmware enforces a run-time limit |
+| Cabin heat | Second relay module on D3 (header 36, HAT IO16), same configuration, DC+ on the same ARM/SAFE rail; second pigtail and gland; third probe; ceramic heater | Heater must have tip-over and overheat shutoff and be listed. Run it on its lowest setting (Brian uses 700 W, about 9.8 A combined with the Tanis) and placard it. Firmware enforces a run-time limit |
 | Current confirmation | Split-core current sensor (SCT-013-030) clamped on the switched hot lead inside the box, bias circuit, analog pin A6 | Gives "confirmed on" in seconds and catches a welded relay |
 | Power-loss alert | Muon-compatible 3.7 V LiPo with temperature sensor (3-pin JST-PH) | 2-pin batteries without a thermistor are not compatible |
 | Flood warning | Public river-gauge alerts + floor water sensor on D5 | River gauges give the lead time; the floor sensor is backup |

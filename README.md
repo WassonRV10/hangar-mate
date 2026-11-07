@@ -17,7 +17,7 @@ Remote preheat control and monitoring for an aircraft in a hangar with no Wi-Fi.
 
 - Particle Muon carrier + M404 LTE-M module
 - One 5 V-trigger opto-isolated relay module (active-high, 15 kΩ pull-down, load on COM→NO)
-- One duplex receptacle in a non-metallic electrical enclosure (listed polycarbonate recommended; see the builder's guide for the alternate used on the prototype) — one half switched, one half always on
+- Non-metallic electrical enclosure (listed polycarbonate recommended; see the builder's guide for the alternate used on the prototype) with a 12-ga switched pigtail cord through a watertight gland, WAGO DIN-rail terminal blocks, and a DIN-rail 12 V supply
 - Two DS18B20 probes on an Adafruit DS2484 bridge: engine (rides on the preheater cord) and hangar
 - Latching ARM/SAFE button in the relay's 5 V feed — SAFE cuts the relay in hardware
 
