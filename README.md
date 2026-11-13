@@ -9,18 +9,23 @@ Remote preheat control and monitoring for an aircraft in a hangar with no Wi-Fi.
 | Path | Contents |
 | --- | --- |
 | `docs/PRD.md` | Project requirements document (v0.21) — the design of record. Section 9A defines the command and notification interface (iPhone Shortcuts + Particle Cloud + Pushover) |
-| `docs/builders-guide.md` | Step-by-step guide for the minimum build (preliminary) |
+| `docs/builders-guide.md` | Step-by-step guide for the full build, with a minimum build in Section 13 (preliminary) |
 | `presentation/` | EAA chapter presentation (PDF) |
 | `firmware/` | Particle firmware — `src/hangar_mate.ino` v0.2.0 (relay control with toggle, ARM/SAFE lockout, temperatures, `status`, `alloff`, preheat-check and long-run events) and `bringup/` (probe diagnostic sketch) |
 | `.github/workflows/` | Compiles the firmware on every push; flashes Hangar_Mate only when run by hand |
 
-## Minimum build
+## Full build (matches the prototype)
 
 - Particle Muon carrier + M404 LTE-M module
-- One 5 V-trigger opto-isolated relay module (active-high, 15 kΩ pull-down, load on COM→NO)
-- Non-metallic electrical enclosure (listed polycarbonate recommended; see the builder's guide for the alternate used on the prototype) with a 12-ga switched pigtail cord through a watertight gland, WAGO DIN-rail terminal blocks, and a DIN-rail 12 V supply
-- Two DS18B20 probes on an Adafruit DS2484 bridge: engine (rides on the preheater cord) and hangar
-- Latching ARM/SAFE button in the relay's 5 V feed — SAFE cuts the relay in hardware
+- Two 5 V-trigger opto-isolated relay modules (active-high, 15 kΩ pull-down, load on COM→NO): preheater and cabin heater
+- Non-metallic electrical enclosure (listed polycarbonate recommended; see the builder's guide for the alternate used on the prototype) with two 12-ga switched pigtail cords through watertight glands, WAGO DIN-rail terminal blocks, and a DIN-rail 12 V supply
+- Three DS18B20 probes on an Adafruit DS2484 bridge: engine (rides on the preheater cord), cabin and hangar
+- Latching ARM/SAFE button in both relays' 5 V feed — SAFE cuts both relays in hardware
+- Listed ceramic cabin heater on its lowest setting, with a firmware-enforced maximum run time
+
+## Minimum build
+
+Just the controller and one controllable outlet for the preheater: no probes, no cabin heat, no ARM/SAFE switch. Its own firmware is a separate project and is not written yet. See Section 13 of the builder's guide.
 
 ## Safety
 
