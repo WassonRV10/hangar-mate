@@ -1,0 +1,67 @@
+# Compile the Hangar Mate firmware on every change, and flash Hangar_Mate
+# only when started by hand (Actions -> Firmware -> Run workflow).
+#
+# Flashing reboots the Muon. Relays stay off through the reboot, so a flash
+# during a preheat turns the Tanis OFF until a new command is sent.
+#
+# Secrets (Settings -> Secrets and variables -> Actions):
+#   PARTICLE_ACCESS_TOKEN  user access token from `particle token create`
+#   PARTICLE_DEVICE_ID     Hangar_Mate's device ID from the Particle Console
+
+name: Firmware
+
+on:
+  push:
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/firmware.yml'
+  pull_request:
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/firmware.yml'
+  workflow_dispatch:
+    inputs:
+      flash:
+        description: 'Flash Hangar_Mate after compiling (reboots it; Tanis turns OFF)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: firmware-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compile hangar_mate (M-SoM)
+        id: compile
+        uses: particle-iot/compile-action@v1
+        with:
+          particle-platform-name: msom
+          device-os-version: '^6.0.0'
+          sources-folder: firmware
+
+      - name: Compile 1-Wire bring-up sketch (M-SoM)
+        uses: particle-iot/compile-action@v1
+        with:
+          particle-platform-name: msom
+          device-os-version: '^6.0.0'
+          sources-folder: firmware/bringup
+
+      - name: Save firmware binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: hangar-mate-firmware
+          path: ${{ steps.compile.outputs.firmware-path }}
+
+      - name: Flash Hangar_Mate
+        if: github.event_name == 'workflow_dispatch' && inputs.flash
+        uses: particle-iot/flash-device-action@v1
+        with:
+          particle-access-token: ${{ secrets.PARTICLE_ACCESS_TOKEN }}
+          device-id: ${{ secrets.PARTICLE_DEVICE_ID }}
+          firmware-path: ${{ steps.compile.outputs.firmware-path }}
