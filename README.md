@@ -2,16 +2,17 @@
 
 Remote preheat control and monitoring for an aircraft in a hangar with no Wi-Fi. A Particle Muon + M404 LTE-M controller switches the engine preheater (Tanis) from an iPhone and reports engine-compartment and hangar temperature, so you can confirm the engine is actually warming before you leave home.
 
-**Status:** prototype. Cellular link, both relays and the ARM/SAFE hardware cutoff are bench-verified. Temperature probes are waiting on the DS2484 I2C-to-1-Wire bridge. Relay-control firmware with a one-tap iPhone toggle is working on the bench; the status readout, alerts and shareable Shortcuts are in progress. The builder's guide is **preliminary — do not build from it yet.**
+**Status:** prototype. Cellular link, both relays, the ARM/SAFE hardware cutoff and the temperature probes (three DS18B20s on the DS2484 I2C-to-1-Wire bridge) are bench-verified. Firmware v0.2.0 adds the `status` readout, `alloff`, the preheat effectiveness check and the 24 h long-run notice; these are implemented but not yet verified on hardware. Still to come: current-sensor (CT) confirmation, Pushover alert forwarding and shareable Shortcuts. The builder's guide is **preliminary — do not build from it yet.**
 
 ## Repository layout
 
 | Path | Contents |
 | --- | --- |
-| `docs/PRD.md` | Project requirements document (v0.19) — the design of record. Section 9A defines the command and notification interface (iPhone Shortcuts + Particle Cloud + Pushover) |
+| `docs/PRD.md` | Project requirements document (v0.21) — the design of record. Section 9A defines the command and notification interface (iPhone Shortcuts + Particle Cloud + Pushover) |
 | `docs/builders-guide.md` | Step-by-step guide for the minimum build (preliminary) |
 | `presentation/` | EAA chapter presentation (PDF) |
-| `firmware/` | Particle firmware — `src/hangar_mate.ino` (relay control, toggle, ARM/SAFE reporting) |
+| `firmware/` | Particle firmware — `src/hangar_mate.ino` v0.2.0 (relay control with toggle, ARM/SAFE lockout, temperatures, `status`, `alloff`, preheat-check and long-run events) and `bringup/` (probe diagnostic sketch) |
+| `.github/workflows/` | Compiles the firmware on every push; flashes Hangar_Mate only when run by hand |
 
 ## Minimum build
 

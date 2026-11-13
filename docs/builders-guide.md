@@ -1,12 +1,13 @@
 # Hangar Preheat Controller — Builder's Guide (Minimum Build)
 
-Oct 31, 2026 · Brian
+Oct 31, 2026 (updated Nov 13, 2026 for firmware v0.2.0) · Brian
 
 **Status: PRELIMINARY — do not distribute yet.** This guide describes the minimum build of Brian's prototype: one opto-isolated relay module, one switched outlet (a short pigtail cord) from a non-metallic electrical enclosure (listed polycarbonate recommended), an engine probe and a hangar probe, and a latching ARM/SAFE switch that cuts relay power in hardware. The relay and ARM/SAFE design are bench-verified on Brian's unit.
 
 Release this guide only after these are closed on Brian's bench:
 
-- [ ] DS2484 I2C-to-1-Wire bridge received and reading the probes on the M404 (part on order)
+- [x] DS2484 I2C-to-1-Wire bridge reading the probes on the M404 (bench-verified Nov 12, 2026; no library needed)
+- [ ] Firmware v0.2.0 features (`status`, `alloff`, "not warming" and long-run alerts) verified on hardware
 - [ ] Engine probe reads reliably at full cable length (controller to cowl)
 - [ ] Production firmware published as a shared app, with a version number
 - [ ] iPhone Shortcuts published with a token prompt at install
@@ -167,9 +168,10 @@ Phase 2 (cabin heat) adds a second pigtail and gland, wired the same way to the 
 ### 6.6 Connect the temperature probes
 
 1. Plug the Qwiic cable from the Muon's Qwiic connector to the DS2484 board.
-2. Connect each probe's three wires to the DS2484 screw terminals: data, power and ground. On Brian's DROK probes, yellow = data, red = power, black = ground; confirm against your probe's documentation and Adafruit's DS2484 pinout page.
-3. Both probes share the same three terminals. The firmware tells them apart by each probe's factory ID (Section 7).
-4. Put a label flag on each probe: ENGINE and HANGAR.
+2. **Check each probe on its own first.** Connect one probe at a time to the DS2484 terminals and confirm it is found and reads room temperature with the bring-up sketch (Section 7.1). Do this before splicing or adding connectors. One probe in Brian's 5-pack was dead out of the box.
+3. Connect each probe's three wires to the DS2484 screw terminals: data, power and ground. On Brian's DROK probes, yellow = data, red = power, black = ground; confirm against your probe's documentation and Adafruit's DS2484 pinout page.
+4. Both probes share the same three terminals. The firmware tells them apart by each probe's factory ID (Section 7).
+5. Put a label flag on each probe: ENGINE and HANGAR.
 
 ### 6.7 Extend the engine probe and attach it to the cord
 
@@ -187,19 +189,23 @@ Phase 2 (cabin heat) adds a second pigtail and gland, wired the same way to the 
 
 ## 7. Firmware and iPhone Shortcuts
 
-You don't write code. You flash Brian's shared firmware, point it at your probes, and install the Shortcuts.
+You don't write code. You find your probes' IDs with a test sketch, copy them into Brian's firmware, flash it, and install the Shortcuts.
 
-### 7.1 Flash the firmware
+The firmware is in this repository: `firmware/src/hangar_mate.ino` (currently v0.2.0). A shared Web IDE link will be published **[link to be published]**. Until the planned `setprobe` function exists, probe IDs are set in the firmware itself, so you edit one table before flashing.
 
-1. Open the shared firmware link: **[link to be published]**, version **[v__]**.
-2. In the Particle Web IDE, copy the app to your account, select your device, and flash.
-3. In the Console, confirm the device restarts and publishes an `hm/boot` event.
+### 7.1 Find your probe IDs
 
-### 7.2 Assign the probes
+1. In the Particle Web IDE, create a new app, paste `firmware/bringup/onewire_bringup.ino`, select your device and flash.
+2. Open USB serial (115200), or read the `search` variable in the Console. The sketch lists every probe it finds by its 16-character factory ID and confirms the DS2484 at address 0x18. See `firmware/bringup/README.md`.
+3. Connect the probes one at a time, or warm one in your hand and watch which reading rises, to tell ENGINE from HANGAR. Write each ID on its label flag.
 
-1. In the Console, read the device's `status` variable. It lists each probe found with its factory ID.
-2. Warm the ENGINE probe in your hand and see which reading rises. Call the `setprobe` function to assign it: **[exact command to be published with the firmware]**.
-3. Repeat for HANGAR. Read `status` again and confirm `eng` and `hgr` both show plausible values.
+### 7.2 Set the probe IDs and flash the firmware
+
+1. Create another app and paste `firmware/src/hangar_mate.ino`.
+2. Find `PROBE_ROM` near the top. Replace the ENGINE and HANGAR rows with your IDs, two hex digits per byte (ID `2867612500000075` becomes `{0x28,0x67,0x61,0x25,0x00,0x00,0x00,0x75}`). Keep the order ENGINE, CABIN, HANGAR.
+3. Minimum build (no cabin probe): set the CABIN row to all zeros. The cabin reading then shows `null`, which is expected.
+4. Flash. In the Console, confirm the device publishes an `hm/boot` event.
+5. Read the `status` variable and confirm `eng` and `hgr` both show plausible °F values. A probe that isn't answering shows `null`; recheck its wiring and ID.
 
 ### 7.3 Set up push alerts
 
@@ -211,15 +217,15 @@ You don't write code. You flash Brian's shared firmware, point it at your probes
 
 1. Create a dedicated Particle access token for the Shortcuts only, so you can revoke it without affecting anything else. Keep it private.
 2. Install the shared Shortcuts **[links]**. Each one asks for your device ID and token at install; they are never embedded in a shared link.
-3. You get: **Preheat** (one button that toggles the preheater) and **Hangar Status**. **All Off** is added when the production firmware publishes the `alloff` function. Preheat reads the controller's reply to the command itself, so what it shows is the state the controller actually set. "ON" means the relay is on; it does not yet prove current is flowing. That confirmation comes with the current sensor (PRD Section 9A, IF-003/IF-004).
+3. You get: **Preheat** (one button that toggles the preheater), **Hangar Status** and **All Off**. Preheat reads the controller's reply to the command itself, so what it shows is the state the controller actually set. "ON" means the relay is on; it does not yet prove current is flowing. That confirmation comes with the current sensor (PRD Section 9A, IF-003/IF-004).
 4. Optional: add a Siri phrase to Preheat (e.g., "Preheat the airplane"). Because it toggles, always read the reply: ON or OFF.
 5. **Never re-run Preheat just because it said "No response from hangar."** The command may have reached the controller even though the reply didn't reach you, and a second toggle would undo it. Run Hangar Status first (or check `tanisState` in the Console), then decide.
 
 | Shortcut | Cloud call | What you see |
 | --- | --- | --- |
 | Preheat | `tanis` = `toggle` | "Tanis ON — heat not yet confirmed", "Tanis OFF", "Relays NOT active" or "No response from hangar" |
-| Hangar Status | read `tanisState`, `armState` (and `status` once released) | States, temps, engine-minus-hangar, signal |
-| All Off (later) | `alloff` | Command result |
+| Hangar Status | read `status` | States, temps, engine-minus-hangar, ARM/SAFE, power source, signal |
+| All Off | `alloff` | "All outlets OFF" (`0`) or "Relays NOT active" (`-2`; outlets are off either way) |
 
 **What the controller returns** (`return_value` in the reply to a function call):
 
@@ -270,7 +276,7 @@ These are the tests Brian's prototype passed. Plug a lamp into the switched half
 5. **Hangar probe:** place it about chest height, away from doors, sunlight and the airplane's heat.
 6. **Signal check in place:** with the door closed, confirm the device is online and run Hangar Status from home or the parking lot.
 7. **Soak test, 24–48 hours:** leave it running with the door closed. Pass = no disconnects that last more than a few minutes, every Shortcut answers, no unexpected restarts in the Console event log.
-8. **First real preheat:** run Preheat (confirm it says Tanis ON) with the cord plugged into the airplane. Note how fast engine-minus-hangar rises. After the first few cycles, set the "not warming" alert threshold from what you saw **[firmware setting to be published]**.
+8. **First real preheat:** run Preheat (confirm it says Tanis ON) with the cord plugged into the airplane. Note how fast engine-minus-hangar rises. After the first few cycles, set the "not warming" alert from what you saw: `EFFECT_CHECK_MS` (default 30 min) and `EFFECT_MIN_RISE_F` (default 5 °F) near the top of `hangar_mate.ino`, then reflash.
 
 ## 10. Daily use and preflight
 
@@ -334,17 +340,19 @@ Avoid header pins 13, 15, 16 and 18 (boot-sensitive), 19, 21 and 23 (used intern
 
 **Open items before release** (owner: Brian)
 
-- [ ] Receive the DS2484 bridge; confirm it and its library read the probes on the M404 (Device OS 6.x)
+- [x] DS2484 bridge reads all three probes on the M404 (Device OS 6.x), driven directly through `Wire` with no library (Nov 12, 2026)
+- [ ] Verify firmware v0.2.0 on hardware: `status`, `alloff`, the "not warming" check and the long-run alert
 - [ ] Confirm engine-probe reliability at the longest expected cable length
 - [x] Controller power supply for builders: 8–12 V DIN-rail supply to VIN
 - [x] DIN-rail supply: Mean Well 12 V, $14
-- [ ] Publish firmware, the `setprobe` command, the alert threshold setting, the Pushover webhook template and the Shortcuts
+- [x] Firmware source published in this repository (v0.2.0), with the alert threshold as a firmware setting
+- [ ] Publish a shared firmware link, the `setprobe` command, the Pushover webhook template and the Shortcuts
 - [ ] Fill in bracketed prices; confirm the Muon kit contents
 - [ ] Decide whether Android users get a front end
 
 ## Sources
 
 - Tanis TPG0001 piston preheat guide
-- Hangar Remote Monitoring & Preheat Control System PRD v0.19, including Section 9A (`docs/PRD.md`)
+- Hangar Remote Monitoring & Preheat Control System PRD v0.21, including Section 9A (`docs/PRD.md`)
 - [Muon datasheet](https://docs.particle.io/reference/datasheets/m-series/muon-datasheet/) · [Particle plans](https://docs.particle.io/notes/plans) · [Particle store](https://store.particle.io/products/particle-maker-kit)
 - [Adafruit DS2484 (5976)](https://www.adafruit.com/product/5976)

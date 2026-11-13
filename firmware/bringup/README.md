@@ -21,7 +21,7 @@ It runs these checks automatically and prints them to USB serial (115200), and a
 
 - Bench-check each probe **alone** at the DS2484 terminal before building it into a cable assembly. One probe in the prototype's 5-pack was dead out of the box.
 - Identify probes by connecting them one at a time, or by warming one probe and watching which reading rises.
-- Copy the IDs into `PROBE_MAP` here and in the main firmware.
+- Copy the IDs into `PROBE_MAP` here and into `PROBE_ROM` in the main firmware (`src/hangar_mate.ino`). `PROBE_ROM` takes the 8 bytes only, in ENGINE, CABIN, HANGAR order.
 
 ## Prototype probe map (2026-11-12)
 
