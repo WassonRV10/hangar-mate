@@ -1,10 +1,12 @@
 # Hangar Remote Monitoring & Preheat Control System
-## Project Requirements Document — Version 0.20
+## Project Requirements Document — Version 0.21
 
 **Project status:** Prototype — bench verification in progress  
 **Primary application:** Remote aircraft hangar monitoring and preheat control  
 **Communications constraint:** No Wi-Fi available at hangar  
 **Proposed controller platform:** Particle Muon carrier board + M404 M-SoM
+
+**Revision notes (v0.21):** **DS2484 temperature bus bench-verified and firmware v0.2.0 implemented** (owner decision, 2026-11-12). On 2026-11-12 the DS2484 was found at I²C address 0x18 on the QWIIC port, and all three DS18B20 probes were found with no CRC errors, read room temperature within 0.8°C of each other, and were mapped by ROM ID to ENGINE, CABIN, and HANGAR. Unplugging the engine probe at its Deutsch connector showed it as disconnected while the cabin and hangar probes kept reading, which verifies the FR-004 self-removal design. One probe from the DROK 5-pack was dead out of the box (no response wired directly or through the connector) and was replaced with a spare. The bus is driven directly through `Wire` with no OneWire or DS2482 library, using a bring-up sketch now in the repository (`firmware/bringup/`). This closes Section 25 item 34 and its Appendix A.3 task. Firmware v0.2.0 implements the `status` variable (IF-002), `alloff`, the FR-003a effectiveness check (`hm/eng/norise`, `hm/eng/ok`), the TSR-002 long-run notice (`hm/tanis/longrun`), and `hm/boot`. These are implemented but **not yet verified on hardware**. The 9A.4 `status` format is updated to match the firmware: temperatures in °F with `null` for a probe that is not responding, `pwr` reported as the Muon power source, and `sig` as signal strength in percent. The CT current (`a`) and battery (`batt`) fields are omitted until the CT is installed and the battery decision is made. Builder note added to Appendix A.3: bench-check each probe alone before building it into a cable assembly. Affects Section 9A.3, 9A.4, 9A.5, 9A.6, 9A.7, Section 25 item 34, Appendix A.1, and Appendix A.3.
 
 **Revision notes (v0.20):** **Enclosure selected** (owner decision, 2026-11-06): a Joinfworld lockable NEMA 4 plastic enclosure, 11.4 × 7.5 × 5.5 in, with clear ABS cover, grid mounting plate, internal DIN rail, and 1/2" NPT cable glands. This is a **deviation** from ER-005's v0.13 requirement for a *listed polycarbonate* enclosure: the seller's listing states no UL/ETL listing or flame rating, and the cover is ABS. Accepted by the owner because the box is purpose-made for electrical equipment, is mounted at the man door at least 10 ft from the nearest fuel tank, and is non-metallic as the antenna requires. The box shall be checked on arrival for any listing mark or UL94 flame rating; if one is present, the deviation is closed. Also records the output design: switched pigtail cords through glands instead of enclosure-mounted receptacles, WAGO DIN-rail terminal blocks, a low-voltage DIN-rail distribution module, and a Deutsch disconnect on the engine probe cable. Affects ER-005 and Section 25 item 32.
 
@@ -505,8 +507,8 @@ iPhone Pushover ◀──HTTPS── Pushover API ◀── Particle Webhook ◀
 |---|---|---|---|---|
 | `tanis` | `on` \| `off` \| `toggle` | Energize, de-energize, or flip the Tanis relay. No timer and no auto-off. | Implemented | FR-002, FR-015, TSR-001/002 |
 | `cabin` | `on` \| `off` \| `toggle` | Energize, de-energize, or flip the cabin-heater relay. The controller turns it off after the fixed maximum run time (IF-006). Each accepted ON command starts a new run-time window. | Implemented | FR-006, FR-015 |
-| `alloff` | (none) | De-energize all controlled outlets. This is the remote equivalent of the FR-015a end state, but it does not replace the physical ARM/SAFE switch. | Planned | FR-015 |
-| `setprobe` | probe ID and role | Assign a temperature probe's ROM ID to ENGINE, CABIN, or HANGAR. | Planned | FR-004, FR-005, FR-007 |
+| `alloff` | (none) | De-energize all controlled outlets. This is the remote equivalent of the FR-015a end state, but it does not replace the physical ARM/SAFE switch. Returns `0` (all off), or `-2` while SAFE with outputs held off. | Implemented (v0.2.0, not yet verified on hardware) | FR-015 |
+| `setprobe` | probe ID and role | Assign a temperature probe's ROM ID to ENGINE, CABIN, or HANGAR. Until then, probe IDs are set in firmware (`PROBE_ROM`) and found with the bring-up sketch. | Planned | FR-004, FR-005, FR-007 |
 | `ack` | `<alarm>` | Acknowledge a latched alarm. | Reserved, Phase 3 | FR-008 |
 
 Neither `tanis` nor `cabin` accepts a duration (IF-007, DEC-IF-06).
@@ -540,17 +542,31 @@ Sending `toggle` twice flips the output twice. If the phone loses the reply to a
 
 These report relay command state, not electrical confirmation.
 
-### Planned `status` variable
+### `status` variable (implemented in firmware v0.2.0)
 
-A compact JSON string that the device updates on every state change and on each sensor cycle. It will replace the individual variables above for the Hangar Status Shortcut. Illustrative content:
+A compact JSON string that the device updates on every state change, after each temperature read (every 30 s), and at least once a minute. It replaces the individual variables above for the Hangar Status Shortcut. Example from the v0.2.0 format:
 
 ```json
-{"t":"2026-11-02T06:14Z",
- "tanis":{"st":"CONFIRMED_ON","a":4.0,"since":"05:02Z"},
+{"t":"2026-11-13T12:05Z",
+ "tanis":{"st":"COMMANDED_ON","since":"11:30Z"},
  "cabin":{"st":"OFF","rem":0},
- "temp":{"eng":71,"cab":38,"hgr":34},
- "arm":"ARMED","pwr":"AC","batt":98,"sig":"good","fw":"0.1.0"}
+ "temp":{"eng":67.9,"cab":67.6,"hgr":69.0},
+ "arm":"ARMED","pwr":"VIN","sig":63,"fw":"0.2.0"}
 ```
+
+| Field | Meaning |
+|---|---|
+| `t` | UTC time of the update (empty until the device has network time) |
+| `tanis.st`, `cabin.st` | Output state (see below). Until the CT is installed, `COMMANDED_ON` or `OFF` |
+| `tanis.since` | UTC time Tanis was turned on; empty when off |
+| `cabin.rem` | Minutes left on the cabin heater's maximum run time |
+| `temp.eng`, `temp.cab`, `temp.hgr` | °F, one decimal. `null` when the probe is not responding, which is normal for the engine probe when the Tanis cord is unplugged |
+| `arm` | `ARMED`, `SAFE`, or `unknown` |
+| `pwr` | Muon power source: `VIN`, `USB`, `BATT`, or `unknown` |
+| `sig` | Cellular signal strength in percent, refreshed every 5 min; `-1` if unknown |
+| `fw` | Firmware version |
+
+**To be added:** `tanis.a` (CT current, amps) with IF-004, and `batt` (battery charge, percent) once the battery decision in ER-004 is made.
 
 ### Output states (FR-003) — Planned, with the CT
 
@@ -571,9 +587,9 @@ The Tanis states use the CT on header pin 24. The cabin-heater current states ap
 | Shortcut | Behavior | Status |
 |---|---|---|
 | **Preheat** | Calls `tanis toggle` and reads `return_value` from the reply. Displays: `1` → "Preheat ON — relay on, heat not yet confirmed" (Phase 1, DEC-IF-07); `0` → "Preheat OFF"; `-2` → "Relays not active — ARM/SAFE switch is SAFE"; anything else, an error, or a timeout → "No response from hangar — state unknown". | Implemented |
-| **Hangar Status** | Reads state and displays a one-screen summary: output states, ARM/SAFE, temperatures, engine-minus-hangar delta, heater time remaining, power source, signal. Reads the individual variables until `status` exists. | Partial (temperatures wait on the DS2484 bench test) |
+| **Hangar Status** | Reads state and displays a one-screen summary: output states, ARM/SAFE, temperatures, engine-minus-hangar delta, heater time remaining, power source, signal. Reads `status` (firmware v0.2.0). | Planned (firmware side implemented; Shortcut to be updated to read `status`) |
 | **Cabin Heat** | Calls `cabin toggle`; same display rules as Preheat. | Planned (Phase 2) |
-| **All Off** | Calls `alloff` and displays the result. | Planned (with `alloff`) |
+| **All Off** | Calls `alloff` and displays the result. | Planned (`alloff` implemented in firmware v0.2.0) |
 
 Each control Shortcut can be invoked by a Siri phrase (for example, "Preheat the airplane").
 
@@ -585,8 +601,8 @@ On API failure or timeout, every Shortcut displays a "state unknown" message. It
 
 | ID | Requirement | Traces to | Status |
 |---|---|---|---|
-| IF-001 | The controller shall expose remote control solely through the cloud functions defined in 9A.3. | FR-015 | Implemented (`tanis`, `cabin`) |
-| IF-002 | The controller shall maintain a `status` variable containing all fields in 9A.4. It shall update it within 2 s of any output state change, and at least every sensor-logging interval otherwise. Until then, `tanisState`, `cabinState`, and `armState` shall be updated on every change. | FR-003, FR-014 | Interim variables implemented; `status` planned |
+| IF-001 | The controller shall expose remote control solely through the cloud functions defined in 9A.3. | FR-015 | Implemented (`tanis`, `cabin`, `alloff`) |
+| IF-002 | The controller shall maintain a `status` variable containing all fields in 9A.4. It shall update it within 2 s of any output state change, and at least every sensor-logging interval otherwise. Until then, `tanisState`, `cabinState`, and `armState` shall be updated on every change. | FR-003, FR-014 | Implemented in v0.2.0 without the CT (`a`) and `batt` fields; not yet verified on hardware |
 | IF-003 | No phone interface element shall display an output as ON based on a command result alone. ON shall be displayed only from a state read showing `CONFIRMED_ON`, or for the cabin heater without a CT, `COMMANDED_ON` labeled as unconfirmed. **Phase 1 allowance (DEC-IF-07):** until IF-004 is implemented, the Preheat Shortcut may display ON from a return code of `1`, provided it is labeled "heat not yet confirmed." The allowance ends when IF-004 is implemented. | CR-002, FR-015 | Allowance in use |
 | IF-004 | The controller shall evaluate Tanis CT current within a confirmation window after each Tanis command (default 10 s, configurable). It shall set the resulting state and publish the corresponding event. | FR-003, CR-002 | Planned (CT bias and calibration, item 30) |
 | IF-005 | The controller shall detect `FAULT_STUCK_ON` continuously, not only after commands, and shall publish a Critical event. | TSR-004, ER-001 | Planned |
@@ -613,12 +629,12 @@ On API failure or timeout, every Shortcut displays a "state unknown" message. It
 | `hm/tanis/off` | Info | -1 (quiet) | Tanis confirmed off | 1 | Planned |
 | `hm/tanis/fault` | Critical | 1 | `FAULT_NO_CURRENT` or `FAULT_LOW_CURRENT` | 1 | Planned |
 | `hm/tanis/stuck` | Critical | 2 (repeats until acknowledged) | `FAULT_STUCK_ON` | 1 | Planned |
-| `hm/tanis/longrun` | Warning | 1 | Tanis energized longer than the configured threshold (default 24 h, TSR-002). Notification only. | 1 | Planned |
-| `hm/eng/norise` | Warning | 1 | FR-003a effectiveness check failed: engine-compartment rise from baseline below threshold at the check interval (defaults 5°F at 30 min) | 1 | Planned |
-| `hm/eng/ok` | Info | 0 | FR-003a effectiveness check passed (optional) | 1 | Planned |
+| `hm/tanis/longrun` | Warning | 1 | Tanis energized longer than the configured threshold (default 24 h, TSR-002). Notification only. | 1 | Implemented (v0.2.0) |
+| `hm/eng/norise` | Warning | 1 | FR-003a effectiveness check failed: engine-compartment rise from baseline below threshold at the check interval (defaults 5°F at 30 min) | 1 | Implemented (v0.2.0) |
+| `hm/eng/ok` | Info | 0 | FR-003a effectiveness check passed (optional) | 1 | Implemented (v0.2.0) |
 | `hm/power/lost` | Critical | 1 | Controller on battery (ER-004) | 1 | Planned |
 | `hm/power/restored` | Info | 0 | AC power restored | 1 | Planned |
-| `hm/boot` | Info | -1 | Controller started or returned to service | 1 | Planned |
+| `hm/boot` | Info | -1 | Controller started or returned to service | 1 | Implemented (v0.2.0) |
 | `hm/cabin/norise` | Warning | 1 | Cabin temperature not rising | 2 | Planned |
 | `hm/flood`, `hm/river`, `hm/activity`, `hm/lights` | per §17 | per tier | Reserved | 3–5 | Reserved |
 
@@ -1186,7 +1202,7 @@ For reference, readings at the owner's home were about −82 to −90 dBm / −1
 30. ✅ **Resolved (v0.10), with build tasks remaining** — SCT-013-030 split-core current transformers (Sazkjere 4-pack) purchased for Tanis electrical confirmation (FR-003), replacing the originally-planned AC-presence module. See Appendix A.1 for the rationale and A.2 for the analog pin assignment. Remaining before this can be wired in: design/verify the bias circuit centering the CT's output within the Muon ADC's 0–3.3V range, and calibrate the ADC reading against the Tanis branch's known ~4.0A draw (Appendix A.3).
 31. ✅ **Closed (v0.16)** — Master-reset switch. *v0.11 history:* a Daiertek 12V 19mm momentary SPST-NO pushbutton was selected and wired in series with the relay-coil 5V rail; this was a design error (a normally-open momentary in series leaves the relays unpowered except while held, and no momentary switch can hold outlets off if firmware is hung). *v0.16 resolution:* replaced with an on-hand **19 mm 12 V illuminated latching push-on/push-off button** (switch rated 1 A; LED isolated from the switch). The switch contacts (pigtail leads labeled "NO" and "NC", verified by continuity to close when latched) are in series with the relay-coil 5V rail; the LED is powered from the switched rail so it lights only when ARMED. D4 senses the switched rail through a divider. Bench-verified 2026-10-27 (see Appendix A.1). Remaining build task: fit a 10k top resistor in the divider before installation (Appendix A.3).
 
-34. ✅ **Resolved (v0.17), with bench test remaining** — Temperature-probe bus interface. Direct GPIO 1-Wire does not work on the M404: probes answered presence but all reads returned 1s, consistent with Particle's statement that RTL872x GPIO is too slow to bit-bang 1-Wire. Owner approved (2026-10-27) an **Adafruit DS2484 I²C-to-1-Wire bridge** on the QWIIC connector. Header pin 29 is freed. Remaining: bench-test once the part arrives (Appendix A.3).
+34. ✅ **Closed (v0.21)** — Temperature-probe bus interface. Direct GPIO 1-Wire does not work on the M404: probes answered presence but all reads returned 1s, consistent with Particle's statement that RTL872x GPIO is too slow to bit-bang 1-Wire. Owner approved (2026-10-27) an **Adafruit DS2484 I²C-to-1-Wire bridge** on the QWIIC connector. Header pin 29 is freed. **Bench-verified 2026-11-12 (v0.21):** DS2484 at 0x18, all three probes found and mapped (ENGINE `2867612500000075`, CABIN `28581724000000C2`, HANGAR `280B522500000001`), no CRC errors, engine-probe disconnect detected. One dead probe replaced from the spares. No library is used; the firmware drives the DS2484 directly through `Wire`.
 
 ### Installation (new in v0.13)
 
@@ -1242,6 +1258,7 @@ Rather than three separate analog thermistor circuits (one GPIO/ADC channel each
 - **What the bridge does:** the DS2484 generates the 1-Wire timing in hardware; the Muon talks to it over I²C. It connects to the QWIIC port with a STEMMA QT/Qwiic cable (no soldering, no GPIO pin), has screw terminals for the probe leads, and shares the I²C bus with the planned light sensor at a different address. It also drives the bus more strongly than a GPIO pin, which helps the long cable run to the engine probe.
 - **Evidence it works on this MCU family:** in the Particle community, a DS18B20 was reported working through a DS2484 on a P2 (RTL872x), and Particle stated its DS2482-RK library works on RTL872x devices. Neither has yet been verified on the M404 (Appendix A.3).
 - **Bench-verified so far:** the three probes are wired correctly (yellow = data, red = VCC, black = GND) and respond with presence pulses. Probe leads move from the DROK adapter to the DS2484's terminals; the DROK adapter and its 4.7k pull-up are no longer used.
+- **Bench-verified (v0.21, 2026-11-12):** the DS2484 answers at 0x18; all three probes are found, read within 0.8°C of each other at room temperature, and are identified by ROM ID; an unplugged engine probe is reported as not responding while the others keep reading. The DS2484's active pull-up is enabled in firmware, and probes are wired in powered (3-wire) mode. One probe of the five was dead on arrival.
 - **Production firmware** shall not depend on the unmaintained OneWire library or on targeting Device OS 5.9.0.
 
 **Relay/switching modules — selected (v0.10): hiBCTR 2-pack, 5V-trigger, 30A single-channel relay module (electromechanical, opto-isolated input), one per branch.**
@@ -1361,7 +1378,7 @@ switch lead "NC" ──┬── Tanis relay VCC
 - ✅ ~~Bench-test the hiBCTR relay modules' trigger input against actual Muon GPIO output (3.3V)~~ — **done for the Tanis module (v0.14)**; reliable with module VCC on 5V (Section 25, item 29).
 - ✅ ~~Confirm the hiBCTR modules' trigger-polarity jumper setting~~ — **done (v0.14)**: active-high, firmware HIGH = on (Section 25, item 29).
 - ✅ ~~Configure and test the cabin-heater relay module (D3) identically to the Tanis module~~ — **done (v0.15)**: same configuration, all tests passed.
-- **Bench-test the DS2484 1-Wire bridge (v0.17):** connect via QWIIC, move the three probe leads to its terminals, confirm all three probes are found and read plausible temperatures, record each probe's ROM address and label it ENGINE / CABIN / HANGAR, and confirm the library used works on Device OS 6.x (Section 25, item 34).
+- ✅ ~~Bench-test the DS2484 1-Wire bridge~~ — **done (v0.21)**: all three probes found, mapped, and reading; disconnect detection verified (Section 25, item 34). **Builder note:** bench-check each DS18B20 alone at the DS2484 terminal before building it into a cable assembly. Run `firmware/bringup/onewire_bringup.ino` to find each probe's ROM ID.
 - **Design and verify the CT bias circuit** *(paused 2026-10-27 pending a 10 µF capacitor; bench sketch ready)* so the SCT-013-030's AC output sits entirely within the Muon ADC's 0–3.3V input range, and confirm the Muon's analog input doesn't exceed 3.3V at the Tanis branch's expected peak current (Section 25, item 30).
 - **Calibrate the CT reading against known current** — bench-test against the Tanis branch's expected ~4.0A RMS (and the heater's settings, if extended) to establish the ADC-reading-to-amperage conversion the firmware will use (Section 25, item 30).
 - ✅ ~~Master-reset switch wiring and divider~~ — **done (v0.16)**: latching ARM/SAFE switch bench-verified (Section 25, item 31). **Remaining before installation:** replace the bench divider's top 15k with a **10k** (~3.0 V at D4), and confirm D4 reads ≥2.4 V with both relay coils energized. Confirm the M404's GPIO input-HIGH threshold from its datasheet when convenient.
