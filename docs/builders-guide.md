@@ -258,7 +258,7 @@ It never shows an old reading as current.
 
 #### Building the Preheat Shortcut yourself
 
-Until the shared Shortcuts are published, build it in the Shortcuts app:
+Until the shared Shortcuts are published, build it in the Shortcuts app. For a screen-by-screen version that also covers Cabin Heat, the status Shortcut and All Off, see `docs/shortcuts-setup-guide.md`.
 
 1. **Get Contents of URL.** URL `https://api.particle.io/v1/devices/<device name>/tanis`. Tap *Show More*: Method **POST**; Header `Authorization` = `Bearer <token>`; Request Body **Form**, field `arg` = `toggle`. (This one action does both GET and POST; the Method setting decides which.)
 2. **Get Dictionary Value**: *Value* for key `return_value` in *Contents of URL*. Function calls (POST) return `return_value`; variable reads (GET) return `result` instead, so don't read a variable here.

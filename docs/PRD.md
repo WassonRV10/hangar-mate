@@ -1,10 +1,12 @@
 # Hangar Remote Monitoring & Preheat Control System
-## Project Requirements Document — Version 0.21
+## Project Requirements Document — Version 0.22
 
 **Project status:** Prototype — bench verification in progress  
 **Primary application:** Remote aircraft hangar monitoring and preheat control  
 **Communications constraint:** No Wi-Fi available at hangar  
 **Proposed controller platform:** Particle Muon carrier board + M404 M-SoM
+
+**Revision notes (v0.22):** **iPhone Shortcuts recorded as built** (2026-11-14). Three Shortcuts are working on the owner's phone: the Tanis toggle (named **"Engine Heat"** on the phone; "Preheat" in this document), **Cabin Heat**, and **Hangar Status** (named "Airplane Heat Status" on the phone). Hangar Status now reads the `status` variable and showed live engine, cabin, and hangar temperatures, both output states, and ARM/SAFE on 2026-11-13, so the `status` read path (IF-002) is verified from the phone. The other v0.2.0 features (`alloff`, FR-003a check, long-run notice, `hm/boot`) remain unverified on hardware. Two gaps were found against this document: (1) Cabin Heat speaks "Cabin heat is on" for a return of `1`, which IF-003 does not allow — it must say the relay is on and heat is not confirmed; (2) Hangar Status does not yet show the engine-minus-hangar delta, cabin-heat time remaining, power source, or signal that 9A.5 lists. Both are tracked as new Section 25 item 41, along with choosing one name for the Tanis Shortcut. Step-by-step build instructions are in `docs/shortcuts-setup-guide.md`. Affects Section 9A.5, 9A.6 (IF-002, IF-003, IF-010 status), 9A.8 (A-2), and Section 25 (new item 41).
 
 **Revision notes (v0.21):** **DS2484 temperature bus bench-verified and firmware v0.2.0 implemented** (owner decision, 2026-11-12). On 2026-11-12 the DS2484 was found at I²C address 0x18 on the QWIIC port, and all three DS18B20 probes were found with no CRC errors, read room temperature within 0.8°C of each other, and were mapped by ROM ID to ENGINE, CABIN, and HANGAR. Unplugging the engine probe at its Deutsch connector showed it as disconnected while the cabin and hangar probes kept reading, which verifies the FR-004 self-removal design. One probe from the DROK 5-pack was dead out of the box (no response wired directly or through the connector) and was replaced with a spare. The bus is driven directly through `Wire` with no OneWire or DS2482 library, using a bring-up sketch now in the repository (`firmware/bringup/`). This closes Section 25 item 34 and its Appendix A.3 task. Firmware v0.2.0 implements the `status` variable (IF-002), `alloff`, the FR-003a effectiveness check (`hm/eng/norise`, `hm/eng/ok`), the TSR-002 long-run notice (`hm/tanis/longrun`), and `hm/boot`. These are implemented but **not yet verified on hardware**. The 9A.4 `status` format is updated to match the firmware: temperatures in °F with `null` for a probe that is not responding, `pwr` reported as the Muon power source, and `sig` as signal strength in percent. The CT current (`a`) and battery (`batt`) fields are omitted until the CT is installed and the battery decision is made. Builder note added to Appendix A.3: bench-check each probe alone before building it into a cable assembly. Affects Section 9A.3, 9A.4, 9A.5, 9A.6, 9A.7, Section 25 item 34, Appendix A.1, and Appendix A.3.
 
@@ -586,12 +588,14 @@ The Tanis states use the CT on header pin 24. The cabin-heater current states ap
 
 | Shortcut | Behavior | Status |
 |---|---|---|
-| **Preheat** | Calls `tanis toggle` and reads `return_value` from the reply. Displays: `1` → "Preheat ON — relay on, heat not yet confirmed" (Phase 1, DEC-IF-07); `0` → "Preheat OFF"; `-2` → "Relays not active — ARM/SAFE switch is SAFE"; anything else, an error, or a timeout → "No response from hangar — state unknown". | Implemented |
-| **Hangar Status** | Reads state and displays a one-screen summary: output states, ARM/SAFE, temperatures, engine-minus-hangar delta, heater time remaining, power source, signal. Reads `status` (firmware v0.2.0). | Planned (firmware side implemented; Shortcut to be updated to read `status`) |
-| **Cabin Heat** | Calls `cabin toggle`; same display rules as Preheat. | Planned (Phase 2) |
+| **Preheat** (named "Engine Heat" on the owner's phone) | Calls `tanis toggle` and reads `return_value` from the reply. Displays: `1` → "Preheat ON — relay on, heat not yet confirmed" (Phase 1, DEC-IF-07); `0` → "Preheat OFF"; `-2` → "Relays not active — ARM/SAFE switch is SAFE"; anything else, an error, or a timeout → "No response from hangar — state unknown". | Implemented |
+| **Hangar Status** (named "Airplane Heat Status" on the owner's phone) | Reads state and displays a one-screen summary: output states, ARM/SAFE, temperatures, engine-minus-hangar delta, heater time remaining, power source, signal. Reads `status` (firmware v0.2.0). If the read returns nothing, shows "No response from hangar" and stops. | Partial (v0.22): reads `status` and shows temperatures, both output states, and ARM/SAFE — verified 2026-11-13. Delta, time remaining, power source, and signal not yet shown (item 41). |
+| **Cabin Heat** | Calls `cabin toggle`; same display rules as Preheat. The owner's version speaks its reply. | Implemented (v0.22). Its reply for `1` must be relabeled "relay on, heat not yet confirmed" to meet IF-003 (item 41). |
 | **All Off** | Calls `alloff` and displays the result. | Planned (`alloff` implemented in firmware v0.2.0) |
 
 Each control Shortcut can be invoked by a Siri phrase (for example, "Preheat the airplane").
+
+Step-by-step build instructions for these Shortcuts, with a verification checklist, are in `docs/shortcuts-setup-guide.md`.
 
 Once CT confirmation (IF-004) is implemented, the Preheat Shortcut shall read the Tanis state after the confirmation window and show ON only for `CONFIRMED_ON`.
 
@@ -602,15 +606,15 @@ On API failure or timeout, every Shortcut displays a "state unknown" message. It
 | ID | Requirement | Traces to | Status |
 |---|---|---|---|
 | IF-001 | The controller shall expose remote control solely through the cloud functions defined in 9A.3. | FR-015 | Implemented (`tanis`, `cabin`, `alloff`) |
-| IF-002 | The controller shall maintain a `status` variable containing all fields in 9A.4. It shall update it within 2 s of any output state change, and at least every sensor-logging interval otherwise. Until then, `tanisState`, `cabinState`, and `armState` shall be updated on every change. | FR-003, FR-014 | Implemented in v0.2.0 without the CT (`a`) and `batt` fields; not yet verified on hardware |
-| IF-003 | No phone interface element shall display an output as ON based on a command result alone. ON shall be displayed only from a state read showing `CONFIRMED_ON`, or for the cabin heater without a CT, `COMMANDED_ON` labeled as unconfirmed. **Phase 1 allowance (DEC-IF-07):** until IF-004 is implemented, the Preheat Shortcut may display ON from a return code of `1`, provided it is labeled "heat not yet confirmed." The allowance ends when IF-004 is implemented. | CR-002, FR-015 | Allowance in use |
+| IF-002 | The controller shall maintain a `status` variable containing all fields in 9A.4. It shall update it within 2 s of any output state change, and at least every sensor-logging interval otherwise. Until then, `tanisState`, `cabinState`, and `armState` shall be updated on every change. | FR-003, FR-014 | Implemented in v0.2.0 without the CT (`a`) and `batt` fields. Read from the phone verified 2026-11-13 (v0.22); update timing not yet measured |
+| IF-003 | No phone interface element shall display an output as ON based on a command result alone. ON shall be displayed only from a state read showing `CONFIRMED_ON`, or for the cabin heater without a CT, `COMMANDED_ON` labeled as unconfirmed. **Phase 1 allowance (DEC-IF-07):** until IF-004 is implemented, the Preheat Shortcut may display ON from a return code of `1`, provided it is labeled "heat not yet confirmed." The allowance ends when IF-004 is implemented. | CR-002, FR-015 | Allowance in use. Cabin Heat's ON reply does not yet meet this (item 41) |
 | IF-004 | The controller shall evaluate Tanis CT current within a confirmation window after each Tanis command (default 10 s, configurable). It shall set the resulting state and publish the corresponding event. | FR-003, CR-002 | Planned (CT bias and calibration, item 30) |
 | IF-005 | The controller shall detect `FAULT_STUCK_ON` continuously, not only after commands, and shall publish a Critical event. | TSR-004, ER-001 | Planned |
 | IF-006 | The cabin-heater maximum on-duration shall be enforced on the controller as a fixed value set in firmware. No command argument shall set or extend it beyond starting a new window with a new ON command. | FR-006 | Implemented (value is a placeholder, item 38) |
 | IF-007 | The `tanis` command shall not accept a duration, and the controller shall never de-energize Tanis on a timer. | TSR-001, TSR-002, §26 | Implemented |
 | IF-008 | Every command (`on`, `off`, `toggle`) shall return `-2` while the ARM/SAFE switch is SAFE or has not been read since boot, with all outputs held off. After the switch returns to ARMED, no output shall re-energize without a new command. | FR-015a | Implemented |
 | IF-009 | Every command shall be logged with time, function, argument, return code, and resulting state. | SR-002 | Partial (device serial log only; durable history is item 37) |
-| IF-010 | The phone interface shall not automatically retry a control command. On an error or timeout it shall report "state unknown," and the owner shall read state before sending another command. | CR-002, FR-015 | Implemented in the Preheat Shortcut |
+| IF-010 | The phone interface shall not automatically retry a control command. On an error or timeout it shall report "state unknown," and the owner shall read state before sending another command. | CR-002, FR-015 | Implemented in the Preheat and Cabin Heat Shortcuts |
 | IF-011 | Each control function shall return the resulting output state or an error code as defined in 9A.3. | CR-002 | Implemented |
 | IF-NOT-01 | The controller shall publish the events in 9A.7 as private Particle events with the `hm/` prefix. | FR-013 | Partial |
 | IF-NOT-02 | Each event shall carry its alert tier (Section 17), and the webhook shall map the tier to a Pushover priority as defined in 9A.7. | FR-013, §17 | Planned |
@@ -643,7 +647,7 @@ Communications loss (CR-001) **cannot be published by the device**. See Section 
 ## 9A.8 Assumptions
 
 - **A-1.** A confirmation window of about 10 s is enough for relay actuation plus CT RMS sampling. To be validated during CT calibration (Appendix A.3).
-- **A-2.** The phone can call functions and read variables fast enough for interactive use over LTE-M. The Preheat Shortcut works interactively on the bench; confirm at the hangar during the soak test (item 33).
+- **A-2.** The phone can call functions and read variables fast enough for interactive use over LTE-M. The Preheat, Cabin Heat, and Hangar Status Shortcuts work interactively on the bench (v0.22); confirm at the hangar during the soak test (item 33).
 - **A-3.** The cabin-heater maximum run time is 120 min. This is a placeholder until the owner sets it (item 38).
 
 Interface open items are carried in Section 25 as items 36–40.
@@ -1216,6 +1220,7 @@ For reference, readings at the owner's home were about −82 to −90 dBm / −1
 38. **Open — cabin-heater maximum run time (IF-006).** Firmware placeholder is 120 min. Owner to set. No default duration is needed, since commands take no duration (DEC-IF-06). *(Draft item 34.)*
 39. **Open — CT thresholds.** The ON band, the low-current fault threshold, and the OFF threshold for IF-004/IF-005. Derived from the CT calibration in item 30 and Appendix A.3. *(Draft item 35.)*
 40. **Open — Particle data-operation budget.** Confirm that the publish rate and the status polling stay within the plan's monthly allowance. *(Draft item 37. Draft item 36, the engine no-rise threshold, is superseded by item 35.)*
+41. **Open (new in v0.22) — Shortcut follow-ups.** (a) Change Cabin Heat's reply for `1` to "Cabin heat relay on. Heat not yet confirmed." (IF-003). (b) Add the engine-minus-hangar delta, `cabin.rem`, `pwr`, and `sig` to Hangar Status (9A.5), and label the cabin-heater line distinctly from the cabin temperature. (c) Choose one name for the Tanis Shortcut ("Preheat" here, "Engine Heat" on the phone) and update the other. (d) Build All Off once `alloff` is verified on hardware. See `docs/shortcuts-setup-guide.md` Section 7.
 
 ---
 
