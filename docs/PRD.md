@@ -1220,7 +1220,7 @@ For reference, readings at the owner's home were about −82 to −90 dBm / −1
 38. **Open — cabin-heater maximum run time (IF-006).** Firmware placeholder is 120 min. Owner to set. No default duration is needed, since commands take no duration (DEC-IF-06). *(Draft item 34.)*
 39. **Open — CT thresholds.** The ON band, the low-current fault threshold, and the OFF threshold for IF-004/IF-005. Derived from the CT calibration in item 30 and Appendix A.3. *(Draft item 35.)*
 40. **Open — Particle data-operation budget.** Confirm that the publish rate and the status polling stay within the plan's monthly allowance. *(Draft item 37. Draft item 36, the engine no-rise threshold, is superseded by item 35.)*
-41. **Open (new in v0.22) — Shortcut follow-ups.** (a) Change Cabin Heat's reply for `1` to "Cabin heat relay on. Heat not yet confirmed." (IF-003). (b) Add the engine-minus-hangar delta, `cabin.rem`, `pwr`, and `sig` to Hangar Status (9A.5), and label the cabin-heater line distinctly from the cabin temperature. (c) Choose one name for the Tanis Shortcut ("Preheat" here, "Engine Heat" on the phone) and update the other. (d) Build All Off once `alloff` is verified on hardware. See `docs/shortcuts-setup-guide.md` Section 7.
+41. **Open (new in v0.22) — Shortcut follow-ups.** (a) Change Cabin Heat's reply for `1` to "Cabin heat relay on. Heat not yet confirmed." (IF-003). (b) Add the engine-minus-hangar delta, `cabin.rem`, `pwr`, and `sig` to Hangar Status (9A.5), and label the cabin-heater line distinctly from the cabin temperature. (c) Choose one name for the Tanis Shortcut ("Preheat" here, "Engine Heat" on the phone) and update the other. (d) Build All Off once `alloff` is verified on hardware. See `docs/shortcuts-setup-guide.md` Section 8.
 
 ---
 
